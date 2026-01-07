@@ -1,374 +1,135 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генеративная нейросеть - МБОУ Излучинская ОСШУИОП №2</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генеративная нейросеть МБОУ ИЗЛУЧИНСКАЯ ОСШУИОП №2</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+<body class="bg-gray-50">
+<div id="root"></div>
 
-        const GenerativeTextAI = () => {
-          const [model, setModel] = useState(null);
-          const [isTraining, setIsTraining] = useState(false);
-          const [trainingProgress, setTrainingProgress] = useState(0);
-          const [generatedText, setGeneratedText] = useState('');
-          const [startText, setStartText] = useState('');
-          const [trainingData, setTrainingData] = useState('');
-          const [logs, setLogs] = useState([]);
-          const [charToIdx, setCharToIdx] = useState({});
-          const [idxToChar, setIdxToChar] = useState({});
-          const [vocabSize, setVocabSize] = useState(0);
-          const [lossHistory, setLossHistory] = useState([]);
-          const [activeTab, setActiveTab] = useState('train');
+<script type="text/babel">
+const { useState, useEffect } = React;
 
-          const defaultTrainingText = `МБОУ «Излучинская ОСШУИОП № 2» — это общеобразовательная школа, расположенная в посёлке Излучинск. Учреждение предоставляет обучение по основным образовательным программам и ориентировано на всестороннее развитие учащихся, включая академические знания, дисциплину и социальные навыки. Школа оснащена учебными кабинетами, необходимыми для проведения занятий по основным предметам, таким как математика, русский язык, химия, физика и другие. В образовательном процессе используются как традиционные методы обучения, так и современные педагогические подходы. Директором МБОУ «Излучинская ОСШУИОП № 2» является Африкян Татьяна Григорьевна. Она отвечает за организацию учебного процесса, управление педагогическим коллективом и развитие школы. Одним из преподавателей школы является учитель химии Агапитова Наталья Александровна. Она ведёт уроки химии, объясняет основы предмета, проводит практические и лабораторные занятия, а также помогает ученикам подготовиться к контрольным работам и экзаменам. МБОУ «Излучинская ОСШУИОП № 2» стремится создать благоприятную образовательную среду, в которой учащиеся получают знания и навыки, необходимые для дальнейшего обучения и жизни в обществе.`;
+const App = () => {
+  const [startText, setStartText] = useState('');
+  const [generatedText, setGeneratedText] = useState('');
+  const [logs, setLogs] = useState([]);
+  const [modelReady, setModelReady] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
-          useEffect(() => {
-            setTrainingData(defaultTrainingText);
-          }, []);
+  const log = msg => setLogs(prev => [...prev.slice(-5), msg]);
 
-          const addLog = (message) => {
-            setLogs(prev => [...prev.slice(-4), message]);
-          };
+  // Инициализация модели
+  useEffect(() => {
+    const loadModel = async () => {
+      const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6/dist/transformers.min.js');
 
-          const prepareData = (text) => {
-            const chars = Array.from(new Set(text.toLowerCase()));
-            const charToIdxMap = {};
-            const idxToCharMap = {};
-            
-            chars.forEach((char, idx) => {
-              charToIdxMap[char] = idx;
-              idxToCharMap[idx] = char;
-            });
+      // Имитируем прогресс загрузки
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if(progress >= 95) progress = 95;
+        setLoadingProgress(progress);
+      }, 300);
 
-            setCharToIdx(charToIdxMap);
-            setIdxToChar(idxToCharMap);
-            setVocabSize(chars.length);
+      // Загрузка модели
+      window.textGenerator = await pipeline('text-generation', 'huggingface/tiny-gpt2');
+      clearInterval(interval);
+      setLoadingProgress(100);
+      setTimeout(() => setModelReady(true), 200);
+      log('Модель ИИ загружена!');
+    };
+    loadModel();
+  }, []);
 
-            return { charToIdxMap, idxToCharMap, vocabSize: chars.length };
-          };
+  const generateText = async () => {
+    if (!startText.trim()) {
+      log('Введите текст для анализа!');
+      return;
+    }
+    if (!window.textGenerator) {
+      log('ИИ ещё загружается...');
+      return;
+    }
+    log('Генерация текста...');
+    try {
+      const result = await window.textGenerator(startText, { max_length: 60 });
+      const text = result[0]?.generated_text || '';
+      setGeneratedText(text);
+      log('Генерация завершена!');
+    } catch (e) {
+      log('Ошибка генерации: ' + e.message);
+    }
+  };
 
-          const createModel = (vocabSize) => {
-            const model = tf.sequential();
-            
-            model.add(tf.layers.lstm({
-              units: 128,
-              returnSequences: true,
-              inputShape: [null, vocabSize]
-            }));
-            
-            model.add(tf.layers.dropout({ rate: 0.2 }));
-            
-            model.add(tf.layers.lstm({
-              units: 128,
-              returnSequences: false
-            }));
-            
-            model.add(tf.layers.dropout({ rate: 0.2 }));
-            
-            model.add(tf.layers.dense({
-              units: vocabSize,
-              activation: 'softmax'
-            }));
+  return (
+    <div className="min-h-screen p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Генеративная нейросеть МБОУ ИЗЛУЧИНСКАЯ ОСШУИОП №2</h1>
+          <p className="text-gray-600 mt-2">Введите текст и получите ответ от ИИ</p>
+        </div>
 
-            model.compile({
-              optimizer: tf.train.adam(0.01),
-              loss: 'categoricalCrossentropy',
-              metrics: ['accuracy']
-            });
-
-            return model;
-          };
-
-          const trainModel = async () => {
-            if (!trainingData.trim()) {
-              addLog('Добавьте текст для обучения!');
-              return;
-            }
-
-            setIsTraining(true);
-            setLossHistory([]);
-            addLog('Начинаю обучение модели...');
-
-            const text = trainingData.toLowerCase();
-            const { charToIdxMap, idxToCharMap, vocabSize: vs } = prepareData(text);
-
-            const seqLength = 20;
-            const sequences = [];
-            const nextChars = [];
-
-            for (let i = 0; i < text.length - seqLength; i++) {
-              sequences.push(text.slice(i, i + seqLength));
-              nextChars.push(text[i + seqLength]);
-            }
-
-            const xs = tf.tensor3d(
-              sequences.map(seq => 
-                Array.from(seq).map(char => {
-                  const vec = new Array(vs).fill(0);
-                  vec[charToIdxMap[char]] = 1;
-                  return vec;
-                })
-              )
-            );
-
-            const ys = tf.tensor2d(
-              nextChars.map(char => {
-                const vec = new Array(vs).fill(0);
-                vec[charToIdxMap[char]] = 1;
-                return vec;
-              })
-            );
-
-            const newModel = createModel(vs);
-            setModel(newModel);
-
-            addLog(`Подготовлено ${sequences.length} примеров`);
-            addLog('Архитектура: 2 LSTM слоя (128 units)');
-
-            try {
-              await newModel.fit(xs, ys, {
-                epochs: 50,
-                batchSize: 32,
-                validationSplit: 0.1,
-                callbacks: {
-                  onEpochEnd: (epoch, logs) => {
-                    setTrainingProgress(((epoch + 1) / 50) * 100);
-                    setLossHistory(prev => [...prev, logs.loss]);
-                    if ((epoch + 1) % 10 === 0) {
-                      addLog(`Эпоха ${epoch + 1}/50 - Loss: ${logs.loss.toFixed(4)}`);
-                    }
-                  }
-                }
-              });
-
-              addLog('Обучение завершено!');
-              addLog('Теперь можете генерировать текст');
-              setActiveTab('generate');
-            } catch (error) {
-              addLog(`Ошибка: ${error.message}`);
-            }
-
-            xs.dispose();
-            ys.dispose();
-            setIsTraining(false);
-          };
-
-          const generateText = async () => {
-            if (!model) {
-              addLog('Сначала обучите модель!');
-              return;
-            }
-
-            if (!startText.trim()) {
-              addLog('Введите начальный текст!');
-              return;
-            }
-
-            const seed = startText.toLowerCase();
-            let generated = seed;
-            const generateLength = 100;
-
-            addLog(`Генерирую текст из "${seed}"...`);
-
-            for (let i = 0; i < generateLength; i++) {
-              const seedSeq = generated.slice(-20);
-              
-              const input = tf.tensor3d([
-                Array.from(seedSeq).map(char => {
-                  const vec = new Array(vocabSize).fill(0);
-                  if (charToIdx[char] !== undefined) {
-                    vec[charToIdx[char]] = 1;
-                  }
-                  return vec;
-                })
-              ]);
-
-              const prediction = model.predict(input);
-              const predArray = await prediction.data();
-              
-              const temperature = 0.7;
-              const probabilities = predArray.map(p => Math.pow(p, 1/temperature));
-              const sum = probabilities.reduce((a, b) => a + b, 0);
-              const normalized = probabilities.map(p => p / sum);
-              
-              let random = Math.random();
-              let chosenIdx = 0;
-              for (let j = 0; j < normalized.length; j++) {
-                random -= normalized[j];
-                if (random <= 0) {
-                  chosenIdx = j;
-                  break;
-                }
-              }
-
-              const nextChar = idxToChar[chosenIdx] || '';
-              generated += nextChar;
-
-              input.dispose();
-              prediction.dispose();
-            }
-
-            setGeneratedText(generated);
-            addLog('Текст сгенерирован!');
-          };
-
-          return (
-            <div className="min-h-screen bg-gray-50 p-6">
-              <div className="max-w-6xl mx-auto">
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl font-semibold text-gray-800 mb-2">
-                    Генеративная нейросеть
-                  </h1>
-                  <p className="text-gray-600">Проект учеников школы МБОУ Излучинская ОСШУИОП №2</p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                  <div className="lg:col-span-2 bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                    <div className="flex gap-2 mb-4 border-b border-gray-200 pb-2">
-                      <button
-                        onClick={() => setActiveTab('train')}
-                        className={`px-4 py-2 rounded font-medium transition ${
-                          activeTab === 'train'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Обучение
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('generate')}
-                        className={`px-4 py-2 rounded font-medium transition ${
-                          activeTab === 'generate'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Генерация
-                      </button>
-                    </div>
-
-                    {activeTab === 'train' && (
-                      <div>
-                        <label className="block text-gray-700 font-medium mb-2">
-                          Текст для обучения:
-                        </label>
-                        <textarea
-                          value={trainingData}
-                          onChange={(e) => setTrainingData(e.target.value)}
-                          className="w-full h-48 bg-white text-gray-800 border border-gray-300 rounded p-3 mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Введите текст для обучения модели..."
-                          disabled={isTraining}
-                        />
-                        <button
-                          onClick={trainModel}
-                          disabled={isTraining}
-                          className="w-full bg-blue-600 text-white font-medium py-3 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isTraining ? 'Обучение...' : 'Начать обучение'}
-                        </button>
-                        {isTraining && (
-                          <div className="mt-4">
-                            <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
-                              <div
-                                className="bg-blue-600 h-full transition-all duration-300"
-                                style={{ width: `${trainingProgress}%` }}
-                              />
-                            </div>
-                            <p className="text-gray-600 text-center mt-2 text-sm">
-                              {trainingProgress.toFixed(0)}%
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {activeTab === 'generate' && (
-                      <div>
-                        <label className="block text-gray-700 font-medium mb-2">
-                          Начальный текст:
-                        </label>
-                        <input
-                          type="text"
-                          value={startText}
-                          onChange={(e) => setStartText(e.target.value)}
-                          className="w-full bg-white text-gray-800 border border-gray-300 rounded p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Введите начало текста..."
-                          disabled={!model || isTraining}
-                        />
-                        <button
-                          onClick={generateText}
-                          disabled={!model || isTraining || !startText.trim()}
-                          className="w-full bg-blue-600 text-white font-medium py-3 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed mb-4"
-                        >
-                          Сгенерировать текст
-                        </button>
-                        {generatedText && (
-                          <div className="bg-gray-50 rounded p-4 border border-gray-200">
-                            <h3 className="text-gray-800 font-medium mb-2">Результат:</h3>
-                            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                              {generatedText}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                      <h3 className="text-gray-800 font-semibold mb-3">Консоль</h3>
-                      <div className="space-y-2 h-64 overflow-y-auto bg-gray-50 rounded p-3 border border-gray-200">
-                        {logs.map((log, idx) => (
-                          <div key={idx} className="text-sm text-gray-700 font-mono">
-                            {log}
-                          </div>
-                        ))}
-                        {logs.length === 0 && (
-                          <div className="text-gray-400 text-sm">
-                            Логи появятся здесь...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {lossHistory.length > 0 && (
-                      <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                        <h3 className="text-gray-800 font-semibold mb-3">График обучения</h3>
-                        <div className="h-32 flex items-end gap-1">
-                          {lossHistory.slice(-20).map((loss, idx) => (
-                            <div
-                              key={idx}
-                              className="flex-1 bg-blue-600 rounded-t"
-                              style={{
-                                height: `${Math.max(5, 100 - loss * 100)}%`
-                              }}
-                              title={`Loss: ${loss.toFixed(4)}`}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-gray-500 text-xs mt-2 text-center">
-                          Последние 20 эпох
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+        {/* Двухколоночный макет */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Левая колонка — ввод текста */}
+          <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow">
+            {/* Полоска загрузки */}
+            {!modelReady && (
+              <div className="w-full bg-gray-200 h-3 rounded mb-4 overflow-hidden">
+                <div 
+                  className="bg-blue-600 h-full transition-all duration-300" 
+                  style={{ width: `${loadingProgress}%` }}
+                />
               </div>
-            </div>
-          );
-        };
+            )}
 
-        ReactDOM.render(<GenerativeTextAI />, document.getElementById('root'));
-    </script>
+            <textarea
+              value={startText}
+              onChange={e => setStartText(e.target.value)}
+              className="w-full h-48 p-3 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              placeholder="Введите текст для генерации..."
+            />
+
+            <button
+              onClick={generateText}
+              disabled={!startText.trim() || !modelReady}
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50 mb-4 transition"
+            >
+              {modelReady ? 'Сгенерировать текст' : 'Загрузка ИИ...'}
+            </button>
+
+            <div className="bg-gray-50 p-3 border rounded max-h-40 overflow-auto">
+              <h2 className="font-semibold mb-2">Логи</h2>
+              {logs.map((l, i) => <div key={i} className="text-sm">{l}</div>)}
+            </div>
+          </div>
+
+          {/* Правая колонка — ответ ИИ */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow flex flex-col">
+            <h2 className="text-xl font-semibold mb-4">Ответ ИИ</h2>
+            {generatedText ? (
+              <div className="flex-1 p-4 bg-gray-50 border rounded overflow-auto whitespace-pre-wrap">
+                {generatedText}
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-gray-400 italic">
+                Здесь появится сгенерированный текст
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
 </body>
 </html>
