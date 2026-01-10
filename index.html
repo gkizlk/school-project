@@ -1,135 +1,429 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Генеративная нейросеть МБОУ ИЗЛУЧИНСКАЯ ОСШУИОП №2</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIzluchinsk - МБОУ Излучинская ОСШУИОП №2</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder"></script>
 </head>
-<body class="bg-gray-50">
-<div id="root"></div>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-<script type="text/babel">
-const { useState, useEffect } = React;
+        const GenerativeTextAI = () => {
+            const [startText, setStartText] = useState('');
+            const [generatedText, setGeneratedText] = useState('');
+            const [logs, setLogs] = useState([]);
+            const [modelUSE, setModelUSE] = useState(null);
+            const [isError, setIsError] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [loadingProgress, setLoadingProgress] = useState(0);
+            const [isProcessing, setIsProcessing] = useState(false);
 
-const App = () => {
-  const [startText, setStartText] = useState('');
-  const [generatedText, setGeneratedText] = useState('');
-  const [logs, setLogs] = useState([]);
-  const [modelReady, setModelReady] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
+            const addLog = msg => setLogs(prev => [...prev.slice(-6), msg]);
 
-  const log = msg => setLogs(prev => [...prev.slice(-5), msg]);
+            const facts = [
+                {
+                    text: "Директор школы — Африкян Татьяна Григорьевна, которая отвечает за организацию и качество образовательного процесса, управление педагогическим коллективом и развитие образовательной среды.",
+                    keywords: ["директор", "директора", "директору", "руководитель", "руководителя", "руководителю", "глава", "главы", "главе", "африкян", "татьяна", "григорьевна", "управление", "управляет", "руководит"]
+                },
+                {
+                    text: "МБОУ «Излучинская ОСШУИОП №2» находится в посёлке Излучинск.",
+                    keywords: ["расположена", "расположение", "где", "место", "адрес", "излучинск", "посёлок", "поселок", "находится"]
+                },
+                {
+                    text: "В школе преподают математику, русский язык, литературу, английский язык, химию, физику, информатику, географию, обществознание, вероятность и статистику, историю, технологию, ОБЗР, биологию, музыку и физическую культуру. Проводятся лабораторные работы, практические занятия и проектная деятельность.",
+                    keywords: ["предмет", "предметы", "предметов", "урок", "уроки", "уроков", "дисциплина", "дисциплины", "учат", "изучают", "программа", "образование", "обучение", "преподают"]
+                },
+                {
+                    text: "В школе работает педагогический коллектив: Африкян Татьяна Григорьевна (директор, математика), Агапитова Наталья Александровна (химия), Шинкевич Ольга Николаевна (русский язык и литература), Борисова Светлана Геннадьевна (русский язык и литература), Ляхова Татьяна Ивановна (русский язык и литература), Шитикова Ольга Николаевна (английский язык), Сумникова Светлана Владимировна (английский язык), Воронцова Татьяна Евгеньевна (математика), Ушакова Ирина Николаевна (математика), Бутко Таисья Александровна (физика), Распутина Анна Александровна (физика), Месь Анастасия Николаевна (биология), Искандарова Жулдуз Умарбековна (биология), Вахрамова Юлия Насимовна (история и обществознание), Лобанов Клим Андреевич (история и обществознание), Яковлева Елена Владимировна (история и обществознание), Пятыгина Елена Георгиевна (география), Босиков Владимир Павлович (технология), Марченко Юрий Николаевич (ОБЗР), Гапон Юрий Анатольевич (информатика), Мустафаев Руслан Osmanович (физическая культура), Садартынова Елена Игоревна (физическая культура), Глазова Марина Александровна (физическая культура), Дарий Максим Михайлович (музыка).",
+                    keywords: ["педагогический состав", "педагогического состава", "педагогическому составу", "педсостав", "педсостава", "педагогический коллектив", "педагогического коллектива", "педагогическому коллективу", "учительский состав", "учительского состава", "учительскому составу", "коллектив", "коллектива", "коллективу", "педколлектив", "педколлектива", "кадры", "кадров", "кадрам", "персонал", "персонала", "персоналу", "штат", "штата", "штату", "кто работает", "кто преподает", "кто преподаёт", "кто ведет", "кто ведёт", "кто учит", "список учителей", "списка учителей", "список педагогов", "списка педагогов", "все учителя", "всех учителей", "все педагоги", "всех педагогов", "весь состав", "всего состава", "весь коллектив", "всего коллектива"]
+                },
+                {
+                    text: "Химию преподаёт Агапитова Наталья Александровна, уделяя внимание как теоретической подготовке, так и проведению лабораторных работ.",
+                    keywords: ["химия", "химии", "химию", "учитель химии", "учителя химии", "учителю химии", "преподаватель химии", "преподавателя химии", "агапитова", "наталья", "александровна", "химик", "лабораторные", "ведёт химию", "ведет химию", "преподает химию", "преподаёт химию"]
+                },
+                {
+                    text: "Русский язык и литературу преподают Шинкевич Ольга Николаевна, Борисова Светлана Геннадьевна и Ляхова Татьяна Ивановна.",
+                    keywords: ["русский", "русского", "литература", "литературы", "язык", "шинкевич", "борисова", "ляхова", "ольга", "светлана", "татьяна", "учитель русского", "преподаватель русского", "ведёт русский", "учитель литературы"]
+                },
+                {
+                    text: "Английский язык преподают Шитикова Ольга Николаевна и Сумникова Светлана Владимировна.",
+                    keywords: ["английский", "английского", "иностранный", "шитикова", "сумникова", "ольга", "светлана", "владимировна", "учитель английского", "преподаватель английского", "ведёт английский"]
+                },
+                {
+                    text: "Математику и курс «Вероятность и статистика» преподают Воронцова Татьяна Евгеньевна, Ушакова Ирина Николаевна и Африкян Татьяна Григорьевна.",
+                    keywords: ["математика", "математики", "математику", "вероятность", "статистика", "воронцова", "ушакова", "татьяна", "ирина", "евгеньевна", "учитель математики", "преподаватель математики", "математик", "ведёт математику"]
+                },
+                {
+                    text: "Физику преподают Бутко Таисья Александровна и Распутина Анна Александровна, формируя у обучающихся научное мировоззрение и практические навыки.",
+                    keywords: ["физика", "физики", "физику", "бутко", "распутина", "таисья", "анна", "александровна", "учитель физики", "преподаватель физики", "физик", "эксперименты", "ведёт физику"]
+                },
+                {
+                    text: "Биологию преподают Месь Анастасия Николаевна и Искандарова Жулдуз Умарбековна.",
+                    keywords: ["биология", "биологии", "биологию", "месь", "анастасия", "искандарова", "жулдуз", "умарбековна", "учитель биологии", "преподаватель биологии", "биолог", "природа", "ведёт биологию"]
+                },
+                {
+                    text: "Историю и обществознание ведут Вахрамова Юлия Насимовна, Лобанов Клим Андреевич и Яковлева Елена Владимировна.",
+                    keywords: ["история", "истории", "историю", "обществознание", "обществознания", "вахрамова", "лобанов", "яковлева", "юлия", "клим", "елена", "насимовна", "андреевич", "владимировна", "учитель истории", "историк", "учитель обществознания", "ведёт историю"]
+                },
+                {
+                    text: "Географию преподаёт Пятыгина Елена Георгиевна.",
+                    keywords: ["география", "географии", "географию", "пятыгина", "елена", "георгиевна", "учитель географии", "преподаватель географии", "географ", "ведёт географию"]
+                },
+                {
+                    text: "Технологию ведёт Босиков Владимир Павлович.",
+                    keywords: ["технология", "технологии", "технологию", "труд", "труда", "босиков", "владимир", "павлович", "учитель технологии", "преподаватель технологии", "ведёт технологию", "ведёт труд"]
+                },
+                {
+                    text: "ОБЗР (Основы безопасности и защиты Родины) преподаёт Марченко Юрий Николаевич.",
+                    keywords: ["обзр", "обж", "безопасность", "безопасности", "марченко", "юрий", "николаевич", "учитель обзр", "преподаватель обзр", "учитель обж", "основы безопасности", "ведёт обзр", "ведёт обж"]
+                },
+                {
+                    text: "Информатику преподаёт Гапон Юрий Анатольевич.",
+                    keywords: ["информатика", "информатики", "информатику", "гапон", "юрий", "анатольевич", "учитель информатики", "преподаватель информатики", "программирование", "компьютер", "икт", "ведёт информатику"]
+                },
+                {
+                    text: "Физическую культуру преподают Мустафаев Руслан Османович, Садартынова Елена Игоревна и Глазова Марина Александровна.",
+                    keywords: ["физкультура", "физкультуры", "физкультуру", "физическая культура", "спорт", "спорта", "мустафаев", "садартынова", "глазова", "руслан", "елена", "марина", "османович", "игоревна", "александровна", "учитель физкультуры", "физрук", "ведёт физкультуру"]
+                },
+                {
+                    text: "Музыку преподаёт Дарий Максим Михайлович.",
+                    keywords: ["музыка", "музыки", "музыку", "дарий", "максим", "михайлович", "учитель музыки", "преподаватель музыки", "ведёт музыку"]
+                },
+                {
+                    text: "Питание обучающихся организовано в школьной столовой на 264 посадочных места. Столовая оснащена современным оборудованием, питание осуществляется по цикличному меню в соответствии с СанПиН 2.3/2.4.3590-20.",
+                    keywords: ["столовая", "столовой", "столовую", "питание", "питания", "еда", "еды", "обед", "обеда", "завтрак", "завтрака", "меню", "кормят", "кухня", "посадочные места", "264", "санпин"]
+                },
+                {
+                    text: "Школа демонстрирует высокие результаты: по итогам 2024 года четыре выпускника были награждены золотыми медалями, а в 2024–2025 учебном году обучающиеся стали 204 призёрами и 92 победителями Всероссийской олимпиады школьников.",
+                    keywords: ["заслуги", "заслуг", "заслугам", "достижения", "достижений", "достижениям", "успехи", "успехов", "успехам", "результаты", "результатов", "результатам", "награды", "наград", "наградам", "победы", "побед", "победам", "медали", "медалей", "медалям", "олимпиада", "олимпиады", "олимпиаде", "призёры", "призёров", "призёрам", "призеры", "призеров", "призерам", "победители", "победителей", "победителям", "чемпионы", "чемпионов", "чемпионам", "отличники", "отличников", "отличникам", "золотые медали", "золотых медалей", "всероссийская олимпиада", "всероссийской олимпиады", "показатели", "показателей", "показателям", "статистика", "рейтинг", "рейтинга", "рейтингу"]
+                },
+                {
+                    text: "По итогам 2024 года четыре выпускника школы были награждены золотыми медалями.",
+                    keywords: ["медаль", "медали", "медалей", "награда", "награды", "наград", "золотые медали", "золотых медалей", "золотая медаль", "золотой медали", "выпускник", "выпускники", "выпускников", "отличник", "отличники", "отличников", "2024"]
+                },
+                {
+                    text: "В 2024–2025 учебном году обучающиеся школы стали 204 призёрами и 92 победителями Всероссийской олимпиады школьников.",
+                    keywords: ["олимпиада", "олимпиады", "олимпиаде", "призёр", "призёры", "призёров", "призер", "призеры", "призеров", "победитель", "победители", "победителей", "всероссийская", "всероссийской", "соревнование", "конкурс", "204", "92", "2024", "2025"]
+                },
+                {
+                    text: "Подать заявку на поступление в МБОУ «Излучинская ОСШУИОП №2» можно по телефону (3466) 28-73-97. Приём заявлений осуществляется по вторникам с 16:00 до 18:00.",
+                    keywords: ["поступить", "поступление", "поступления", "поступлению", "поступил", "поступила", "поступают", "зачислить", "зачисление", "зачисления", "зачислению", "записать", "записаться", "запись", "записи", "заявка", "заявки", "заявку", "заявление", "заявления", "заявлению", "подать", "подача", "подать заявку", "подать заявление", "телефон", "телефона", "телефону", "номер", "номера", "номеру", "позвонить", "звонить", "связаться", "контакт", "контакты", "контакта", "контактов", "контактам", "приём", "приёма", "приёму", "прием", "приема", "приему", "часы приёма", "часов приёма", "часы приема", "время приёма", "времени приёма", "время приема", "график", "графика", "графику", "расписание", "расписания", "расписанию", "вторник", "вторника", "вторникам", "16:00", "18:00", "3466", "28-73-97"]
+                }
+            ];
 
-  // Инициализация модели
-  useEffect(() => {
-    const loadModel = async () => {
-      const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6/dist/transformers.min.js');
+            const levenshtein = (a, b) => {
+                const matrix = [];
+                for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+                for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+                for (let i = 1; i <= b.length; i++) {
+                    for (let j = 1; j <= a.length; j++) {
+                        matrix[i][j] = b[i-1] === a[j-1] ? matrix[i-1][j-1] : Math.min(matrix[i-1][j-1]+1, Math.min(matrix[i][j-1]+1, matrix[i-1][j]+1));
+                    }
+                }
+                return matrix[b.length][a.length];
+            };
 
-      // Имитируем прогресс загрузки
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 15;
-        if(progress >= 95) progress = 95;
-        setLoadingProgress(progress);
-      }, 300);
+            const cosineSimilarity = (vecA, vecB) => {
+                let dot = 0, normA = 0, normB = 0;
+                for (let i = 0; i < vecA.length; i++) {
+                    dot += vecA[i]*vecB[i];
+                    normA += vecA[i]*vecA[i];
+                    normB += vecB[i]*vecB[i];
+                }
+                return dot / (Math.sqrt(normA)*Math.sqrt(normB) + 1e-8);
+            };
 
-      // Загрузка модели
-      window.textGenerator = await pipeline('text-generation', 'huggingface/tiny-gpt2');
-      clearInterval(interval);
-      setLoadingProgress(100);
-      setTimeout(() => setModelReady(true), 200);
-      log('Модель ИИ загружена!');
-    };
-    loadModel();
-  }, []);
+            const isTextMeaningful = (text) => {
+                const normalized = text.trim().toLowerCase();
+                if (normalized.length < 2) return false;
+                if (/^\d+$/.test(normalized)) return false;
+                if (!/[а-яёa-z]/i.test(normalized)) return false;
+                if (/(.)\1{4,}/.test(normalized)) return false;
+                
+                const words = normalized.split(/\s+/);
+                for (let word of words) {
+                    const digits = (word.match(/\d/g) || []).length;
+                    const letters = (word.match(/[а-яёa-z]/gi) || []).length;
+                    if (letters > 0 && digits > 0 && digits / word.length > 0.3) {
+                        return false;
+                    }
+                }
+                
+                const cyrillicWords = normalized.match(/[а-яё]+/gi);
+                if (cyrillicWords) {
+                    for (let word of cyrillicWords) {
+                        if (word.length > 4 && !/[аеёиоуыэюя]/i.test(word)) {
+                            return false;
+                        }
+                    }
+                }
+                
+                return true;
+            };
 
-  const generateText = async () => {
-    if (!startText.trim()) {
-      log('Введите текст для анализа!');
-      return;
-    }
-    if (!window.textGenerator) {
-      log('ИИ ещё загружается...');
-      return;
-    }
-    log('Генерация текста...');
-    try {
-      const result = await window.textGenerator(startText, { max_length: 60 });
-      const text = result[0]?.generated_text || '';
-      setGeneratedText(text);
-      log('Генерация завершена!');
-    } catch (e) {
-      log('Ошибка генерации: ' + e.message);
-    }
-  };
+            const calculateDynamicThreshold = (inputText) => {
+                const BASE_THRESHOLD = 0.62;
+                const HIGH_THRESHOLD = 0.75;
+                
+                const words = inputText.trim().split(/\s+/).filter(w => w.length > 0);
+                const wordCount = words.length;
+                
+                if (wordCount <= 2) return HIGH_THRESHOLD;
+                if (wordCount <= 4) return BASE_THRESHOLD + 0.08;
+                if (wordCount <= 6) return BASE_THRESHOLD + 0.03;
+                return BASE_THRESHOLD;
+            };
 
-  return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Генеративная нейросеть МБОУ ИЗЛУЧИНСКАЯ ОСШУИОП №2</h1>
-          <p className="text-gray-600 mt-2">Введите текст и получите ответ от ИИ</p>
-        </div>
+            const [factVectors, setFactVectors] = useState([]);
 
-        {/* Двухколоночный макет */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Левая колонка — ввод текста */}
-          <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow">
-            {/* Полоска загрузки */}
-            {!modelReady && (
-              <div className="w-full bg-gray-200 h-3 rounded mb-4 overflow-hidden">
-                <div 
-                  className="bg-blue-600 h-full transition-all duration-300" 
-                  style={{ width: `${loadingProgress}%` }}
-                />
-              </div>
-            )}
+            const defaultTrainingText = `Муниципальное бюджетное общеобразовательное учреждение «Излучинская основная средняя школа с углублённым изучением отдельных предметов № 2» (МБОУ «Излучинская ОСШУИОП № 2») является современной общеобразовательной организацией, расположенной в посёлке Излучинск. Школа осуществляет обучение по основным общеобразовательным программам и ориентирована на обеспечение качества образования, всестороннее развитие личности обучающихся, формирование устойчивых знаний, а также развитие интеллектуальных, творческих и социальных компетенций учащихся.
 
-            <textarea
-              value={startText}
-              onChange={e => setStartText(e.target.value)}
-              className="w-full h-48 p-3 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Введите текст для генерации..."
-            />
+Руководство образовательной организацией осуществляет директор Африкян Татьяна Григорьевна, которая отвечает за организацию и качество образовательного процесса, управление педагогическим коллективом, координацию учебной и воспитательной деятельности, а также за развитие образовательной среды школы.
 
-            <button
-              onClick={generateText}
-              disabled={!startText.trim() || !modelReady}
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50 mb-4 transition"
-            >
-              {modelReady ? 'Сгенерировать текст' : 'Загрузка ИИ...'}
-            </button>
+Образовательный процесс в школе реализуется по широкому спектру учебных дисциплин, соответствующих федеральным государственным образовательным стандартам. В учебный план входят математика, русский язык, литература, английский язык, химия, физика, информатика, изобразительное искусство, физическая культура, география, обществознание, вероятность и статистика, история, технология, основы безопасности и защиты Родины (ОБЗР), биология и музыка.
 
-            <div className="bg-gray-50 p-3 border rounded max-h-40 overflow-auto">
-              <h2 className="font-semibold mb-2">Логи</h2>
-              {logs.map((l, i) => <div key={i} className="text-sm">{l}</div>)}
-            </div>
-          </div>
+Преподавание химии осуществляет Агапитова Наталья Александровна. Русский язык и литературу преподают Шинкевич Ольга Николаевна, Борисова Светлана Геннадьевна и Ляхова Татьяна Ивановна. Английский язык преподают Шитикова Ольга Николаевна и Сумникова Светлана Владимировна. Обучение математике осуществляют Воронцова Татьяна Евгеньевна, Ушакова Ирина Николаевна и Африкян Татьяна Григорьевна.
 
-          {/* Правая колонка — ответ ИИ */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow flex flex-col">
-            <h2 className="text-xl font-semibold mb-4">Ответ ИИ</h2>
-            {generatedText ? (
-              <div className="flex-1 p-4 bg-gray-50 border rounded overflow-auto whitespace-pre-wrap">
-                {generatedText}
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-400 italic">
-                Здесь появится сгенерированный текст
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+Физику преподают Бутко Таисья Александровна и Распутина Анна Александровна. Биологию преподают Месь Анастасия Николаевна и Искандарова Жулдуз Умарбековна. Историю и обществознание ведут Вахрамова Юлия Насимовна, Лобанов Клим Андреевич и Яковлева Елена Владимировна. Географию преподаёт Пятыгина Елена Георгиевна. Технологию ведёт Босиков Владимир Павлович. ОБЗР преподаёт Марченко Юрий Николаевич. Информатику преподаёт Гапон Юрий Анатольевич. Физкультуру преподают Мустафаев Руслан Османович, Садартынова Елена Игоревна и Глазова Марина Александровна. Музыку преподаёт Дарий Максим Михайлович.
 
-ReactDOM.render(<App />, document.getElementById('root'));
-</script>
+Питание обучающихся организовано в школьной столовой на 264 посадочных места. По итогам 2024 года четыре выпускника были награждены золотыми медалями. В 2024–2025 учебном году обучающиеся стали 204 призёрами и 92 победителями Всероссийской олимпиады школьников.`;
+
+            useEffect(() => {
+                addLog('Начало загрузки USE модели...');
+                setLoadingProgress(10);
+                
+                (async () => {
+                    try {
+                        setLoadingProgress(30);
+                        addLog('Инициализация TensorFlow...');
+                        
+                        const model = await use.load();
+                        setLoadingProgress(60);
+                        addLog('USE модель загружена');
+                        
+                        setModelUSE(model);
+                        
+                        addLog('Создание векторов фактов...');
+                        setLoadingProgress(80);
+                        
+                        const embeddings = await model.embed(facts.map(f=>f.text));
+                        const vectors = await embeddings.array();
+                        setFactVectors(vectors);
+                        
+                        setLoadingProgress(100);
+                        addLog('✓ Модель готова к работе!');
+                        
+                        setTimeout(() => setIsLoading(false), 500);
+                    } catch (error) {
+                        addLog('⚠ Ошибка загрузки модели');
+                        console.error(error);
+                    }
+                })();
+            }, []);
+
+            const generateText = async () => {
+                if (!startText.trim()) {
+                    addLog('⚠ Введите запрос');
+                    return;
+                }
+                
+                if (!modelUSE) {
+                    addLog('⚠ Модель ещё не загружена');
+                    return;
+                }
+
+                setIsProcessing(true);
+
+                if (!isTextMeaningful(startText)) {
+                    setGeneratedText('Запрос не распознан. Пожалуйста, введите осмысленный вопрос о школе на русском языке.');
+                    setIsError(true);
+                    addLog('⚠ Запрос не является осмысленным текстом');
+                    setIsProcessing(false);
+                    return;
+                }
+
+                const normalizedInput = startText.toLowerCase().trim();
+                const inputWords = normalizedInput.split(/\s+/).filter(w => w.length > 0);
+
+                // Приоритизация: сначала ищем точные совпадения (расстояние 0)
+                for (let f of facts) {
+                    for (let inputWord of inputWords) {
+                        for (let keyword of f.keywords) {
+                            if (inputWord === keyword) {
+                                setGeneratedText(f.text);
+                                setIsError(false);
+                                addLog(`✓ Точное совпадение: "${inputWord}"`);
+                                setIsProcessing(false);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                // Затем ищем с опечатками, но приоритизируем более специфичные факты
+                let bestMatch = null;
+                let bestDistance = Infinity;
+                let bestMatchedKeyword = '';
+                let bestInputWord = '';
+
+                for (let f of facts) {
+                    for (let inputWord of inputWords) {
+                        for (let keyword of f.keywords) {
+                            const distance = levenshtein(inputWord, keyword);
+                            const maxDistance = keyword.length <= 4 ? 1 : 2;
+                            
+                            // Если расстояние допустимо
+                            if (distance <= maxDistance && distance > 0) {
+                                // Приоритизируем более длинные и специфичные keywords
+                                // Например, "учитель химии" важнее чем "учителя"
+                                const currentPriority = keyword.length * 100 - distance;
+                                const bestPriority = bestMatch ? (bestMatchedKeyword.length * 100 - bestDistance) : -1;
+                                
+                                if (currentPriority > bestPriority) {
+                                    bestMatch = f;
+                                    bestDistance = distance;
+                                    bestMatchedKeyword = keyword;
+                                    bestInputWord = inputWord;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (bestMatch) {
+                    setGeneratedText(bestMatch.text);
+                    setIsError(false);
+                    addLog(`✓ Найдено по ключевому слову: "${bestInputWord}" ≈ "${bestMatchedKeyword}" (расстояние: ${bestDistance})`);
+                    setIsProcessing(false);
+                    return;
+                }
+
+                const inputEmbed = await modelUSE.embed([normalizedInput]);
+                const inputVec = (await inputEmbed.array())[0];
+                let bestFact = null;
+                let bestScore = -1;
+
+                for (let i = 0; i < facts.length; i++) {
+                    const semanticScore = cosineSimilarity(inputVec, factVectors[i]);
+                    if (semanticScore > bestScore) {
+                        bestScore = semanticScore;
+                        bestFact = facts[i].text;
+                    }
+                }
+
+                const threshold = calculateDynamicThreshold(startText);
+
+                if (bestScore < threshold) {
+                    setGeneratedText('Факт не найден. Попробуйте задать вопрос о директоре, учителях, местоположении, предметах, питании или достижениях школы.');
+                    setIsError(true);
+                    addLog(`✗ Низкая релевантность (score: ${bestScore.toFixed(3)}, требуется: ${threshold.toFixed(3)})`);
+                } else {
+                    setGeneratedText(bestFact);
+                    setIsError(false);
+                    addLog(`✓ Факт найден семантически (score: ${bestScore.toFixed(3)}, порог: ${threshold.toFixed(3)})`);
+                }
+                
+                setIsProcessing(false);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50 p-6">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-semibold text-gray-800 mb-2">AIzluchinsk</h1>
+                            <p className="text-gray-600">Проект учеников школы МБОУ Излучинская ОСШУИОП №2</p>
+                        </div>
+
+                        {isLoading && (
+                            <div className="mb-6 bg-white rounded-lg p-6 border shadow-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-gray-700 font-medium">Загрузка модели USE...</span>
+                                    <span className="text-blue-600 font-semibold">{loadingProgress}%</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                    <div 
+                                        className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-out"
+                                        style={{ width: `${loadingProgress}%` }}
+                                    />
+                                </div>
+                                <p className="text-sm text-gray-500 mt-2">Пожалуйста, подождите. Это может занять несколько секунд...</p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2 bg-white rounded-lg p-6 border shadow-sm flex flex-col">
+                                <h2 className="text-xl font-semibold mb-3">Информация о школе</h2>
+                                <div className="h-64 overflow-y-auto p-3 bg-gray-50 border rounded mb-4 whitespace-pre-wrap text-gray-700">
+                                    {defaultTrainingText}
+                                </div>
+                                <input
+                                    value={startText}
+                                    onChange={e => setStartText(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && !isLoading && generateText()}
+                                    placeholder="Введите вопрос..."
+                                    className="w-full border rounded p-3 mb-3"
+                                    disabled={isLoading || isProcessing}
+                                />
+                                <button
+                                    onClick={generateText}
+                                    disabled={isLoading || isProcessing}
+                                    className="w-full bg-blue-600 text-white py-3 rounded mb-4 hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isProcessing ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                            </svg>
+                                            Обработка...
+                                        </>
+                                    ) : (
+                                        'Получить факт'
+                                    )}
+                                </button>
+                                {generatedText && (
+                                    <div className={`border-l-4 ${isError ? 'border-red-600 bg-red-50' : 'border-blue-600 bg-blue-50'} p-4 rounded shadow`}>
+                                        <h3 className={`font-semibold ${isError ? 'text-red-800' : 'text-blue-800'} mb-2`}>
+                                            {isError ? '⚠ Результат поиска:' : '✓ Релевантный факт:'}
+                                        </h3>
+                                        <p className="text-gray-800">{generatedText}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col gap-6">
+                                <div className="bg-white rounded-lg p-6 border shadow-sm">
+                                    <h3 className="font-semibold mb-3">Консоль</h3>
+                                    <div className="h-64 overflow-y-auto bg-gray-50 p-3 border rounded font-mono text-sm">
+                                        {logs.map((l,i) => <div key={i} className="mb-1">{l}</div>)}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-lg p-6 border shadow-sm">
+                                    <h3 className="font-semibold mb-3">О AIzluchinsk</h3>
+                                    <p className="text-gray-700 mb-2">
+                                        Это NLP-модель, которая анализирует запросы пользователей и находит наиболее релевантные факты об МБОУ «Излучинская ОСШУИОП №2». Модель использует семантическое сопоставление текста через Universal Sentence Encoder, учитывает ключевые слова и синонимы, а также распознаёт опечатки.
+                                    </p>
+                                    <p className="text-gray-700 text-sm mt-3 pt-3 border-t">
+                                        <strong>Авторы:</strong> Катренко Герман и Мокроусов Матвей
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<GenerativeTextAI />, document.getElementById('root'));
+    </script>
 </body>
 </html>
