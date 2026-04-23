@@ -10,15 +10,8 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <script type="module">
-        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0';
-
-        env.allowRemoteModels = true;
-        env.allowLocalModels = false;
-        env.useBrowserCache = true;
-
-        window.__HF = { pipeline, env };
-    </script>
+    <!-- Browser-only Transformers.js (UMD/global build) -->
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js"></script>
 </head>
 <body>
     <div id="root"></div>
@@ -168,7 +161,6 @@
             'ведет': 'учитель',
             'ведёт': 'учитель',
             'учительница': 'учитель',
-            'дир': 'директор',
             'руководитель': 'директор',
             'глава': 'директор',
             'адрес': 'расположение',
@@ -179,7 +171,6 @@
             'безопасность': 'обзр',
             'физрук': 'физкультура',
             'икт': 'информатика',
-            'комп': 'информатика',
             'компьютер': 'информатика',
             'программирование': 'информатика',
             'спорт': 'физкультура',
@@ -274,9 +265,12 @@
                 .trim();
         };
 
+        const collapseRepeats = (word) => word.replace(/([a-zа-яё])\1+/gi, '$1');
+
         const stemRu = (word) => {
             let w = normalizeForSearch(word).replace(/\s+/g, '');
-            if (w.length <= 3) return w;
+            if (w.length <= 2) return w;
+            w = collapseRepeats(w);
 
             for (const suf of STEM_SUFFIXES) {
                 if (w.length > suf.length + 2 && w.endsWith(suf)) {
@@ -343,10 +337,9 @@
             if (letters < 2) return true;
 
             const compact = n.replace(/\s/g, '');
-            if (compact.length < 3) return true;
-            if (/^(.)\1{3,}$/.test(compact)) return true;
-            if (/(.)\1{4,}/.test(compact)) return true;
-            if (!/[а-яёa-z]/i.test(n)) return true;
+            if (compact.length < 2) return true;
+            if (/^(.)\1{4,}$/.test(compact)) return true;
+            if (!/[a-zа-яё]/i.test(n)) return true;
 
             const tokens = tokenize(n);
             if (tokens.length === 0) return true;
@@ -354,7 +347,7 @@
             const hasNormalToken = tokens.some(t => t.length >= 3 || SHORT_OK.has(t));
             if (!hasNormalToken) return true;
 
-            if (tokens.length === 1 && tokens[0].length < 3 && !SHORT_OK.has(tokens[0])) return true;
+            if (tokens.length === 1 && tokens[0].length < 2 && !SHORT_OK.has(tokens[0])) return true;
 
             return false;
         };
@@ -410,34 +403,97 @@
             return out.replace(/\s+/g, ' ').trim();
         };
 
+        const buildFactVocab = () => {
+            const vocab = new Set();
+
+            for (const fact of facts) {
+                const tokens = tokenize(fact.text);
+                tokens.forEach(t => vocab.add(t));
+
+                (fact.keywords || []).forEach(k => {
+                    const t = normalizeToken(k);
+                    if (t) vocab.add(t);
+                });
+            }
+
+            Object.keys(TOKEN_SYNONYMS).forEach(k => vocab.add(normalizeToken(k)));
+            Object.values(TOKEN_SYNONYMS).forEach(v => vocab.add(normalizeToken(v)));
+
+            return [...vocab].filter(Boolean);
+        };
+
+        const FACT_VOCAB = buildFactVocab();
+
+        const correctTokenByVocab = (token) => {
+            const t = normalizeToken(token);
+            if (!t || t.length < 3) return t;
+            if (SHORT_OK.has(t)) return t;
+
+            if (FACT_VOCAB.includes(t)) return t;
+
+            let best = t;
+            let bestScore = 0;
+
+            for (const cand of FACT_VOCAB) {
+                if (!cand || cand.length < 3) continue;
+
+                const lenDiff = Math.abs(cand.length - t.length);
+                if (lenDiff > 3) continue;
+
+                const dist = levenshtein(t, cand);
+                const maxLen = Math.max(t.length, cand.length);
+                const sim = 1 - dist / Math.max(maxLen, 1);
+
+                // Чуть сильнее любим короткие слова и варианты с общим началом
+                const prefixBonus = cand[0] === t[0] ? 0.08 : 0;
+                const score = sim + prefixBonus;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = cand;
+                }
+            }
+
+            // Не переусердствуем: исправляем только когда уверенность нормальная
+            return bestScore >= 0.58 ? best : t;
+        };
+
+        const normalizeQuerySmart = (text) => {
+            const raw = normalizeForSearch(text);
+            const tokens = raw.split(/\s+/).filter(Boolean);
+            const corrected = tokens.map(correctTokenByVocab);
+            return corrected.join(' ');
+        };
+
         const buildQueryVariants = (inputText) => {
-            const normalized = normalizeForSearch(inputText);
+            const raw = normalizeForSearch(inputText);
             const canonical = applyQueryRules(inputText);
+            const corrected = normalizeQuerySmart(canonical);
             const topic = detectTopic(inputText);
-            const tokens = tokenize(canonical);
 
             const variants = new Set([
-                normalized,
+                raw,
                 canonical,
-                tokens.join(' ')
+                corrected,
+                collapseRepeats(raw),
+                tokenize(corrected).join(' ')
             ]);
 
             if (QUERY_EXPANSIONS[topic]) {
+                variants.add(`${corrected} ${QUERY_EXPANSIONS[topic].join(' ')}`);
                 variants.add(`${canonical} ${QUERY_EXPANSIONS[topic].join(' ')}`);
             }
 
-            if (/(кто|чей|чья|чьё|чье)\s+(ведет|ведёт|преподает|преподаёт|учит)/.test(normalized)) {
-                variants.add(`${canonical} учитель преподаватель`);
+            if (/(кто|чей|чья|чьё|чье)\s+(ведет|ведёт|преподает|преподаёт|учит)/.test(raw)) {
+                variants.add(`${corrected} учитель преподаватель`);
             }
 
-            if (/(где|адрес|находится|расположена|расположен)/.test(normalized)) {
-                variants.add(`${canonical} расположение посёлок школа`);
+            if (/(где|адрес|находится|расположена|расположен)/.test(raw)) {
+                variants.add(`${corrected} расположение посёлок школа`);
             }
 
             return [...variants].filter(Boolean);
         };
-
-        const detectFactTopic = (factText) => detectTopic(factText);
 
         const buildFactProfile = (fact) => {
             const booster = unique([
@@ -447,7 +503,7 @@
 
             return {
                 ...fact,
-                topic: detectFactTopic(fact.text),
+                topic: detectTopic(fact.text),
                 searchText: unique([
                     fact.text,
                     (fact.keywords || []).join(' ')
@@ -466,8 +522,25 @@
 
             if (qTokens.length === 0) return 0;
 
+            if (qTokens.length === 1) {
+                const qt = qTokens[0];
+                let best = 0;
+
+                for (const ft of fTokens) {
+                    if (ft === qt) return 1;
+
+                    const dist = levenshtein(qt, ft);
+                    const maxLen = Math.max(qt.length, ft.length);
+                    const sim = 1 - dist / Math.max(maxLen, 1);
+                    if (sim > best) best = sim;
+                }
+
+                return Math.max(0, best);
+            }
+
             let exact = 0;
             let fuzzy = 0;
+            let correctedHit = 0;
 
             for (const qt of qTokens) {
                 if (fTokens.has(qt)) {
@@ -475,12 +548,18 @@
                     continue;
                 }
 
-                if (qt.length < 4) continue;
+                const corrected = correctTokenByVocab(qt);
+                if (fTokens.has(corrected)) {
+                    correctedHit++;
+                    continue;
+                }
+
+                if (qt.length < 3) continue;
 
                 let matched = false;
                 for (const ft of fTokens) {
-                    if (Math.abs(ft.length - qt.length) > 2) continue;
-                    const maxDistance = qt.length <= 4 ? 1 : 2;
+                    if (Math.abs(ft.length - qt.length) > 3) continue;
+                    const maxDistance = qt.length <= 4 ? 2 : 3;
                     if (levenshtein(qt, ft) <= maxDistance) {
                         matched = true;
                         break;
@@ -491,6 +570,7 @@
 
             const exactScore = exact / qTokens.length;
             const fuzzyScore = fuzzy / qTokens.length;
+            const correctedScore = correctedHit / qTokens.length;
 
             const nQuery = normalizeForSearch(queryText);
             let phraseBoost = 0;
@@ -502,24 +582,24 @@
                 }
             }
 
-            return Math.min(1, exactScore * 0.75 + fuzzyScore * 0.2 + phraseBoost);
+            return Math.min(1, exactScore * 0.54 + correctedScore * 0.24 + fuzzyScore * 0.16 + phraseBoost);
         };
 
         const calculateDynamicThreshold = (inputText, lexicalScore = 0) => {
             const tokens = tokenize(inputText);
             const count = tokens.length;
 
-            let threshold = 0.47;
-            if (count <= 1) threshold = 0.58;
-            else if (count <= 2) threshold = 0.54;
-            else if (count <= 4) threshold = 0.49;
-            else threshold = 0.44;
+            let threshold = 0.42;
+            if (count <= 1) threshold = 0.22;
+            else if (count <= 2) threshold = 0.30;
+            else if (count <= 4) threshold = 0.36;
+            else threshold = 0.38;
 
-            if (lexicalScore >= 0.35) threshold -= 0.04;
-            if (lexicalScore >= 0.55) threshold -= 0.08;
-            if (lexicalScore >= 0.70) threshold -= 0.10;
+            if (lexicalScore >= 0.35) threshold -= 0.03;
+            if (lexicalScore >= 0.55) threshold -= 0.06;
+            if (lexicalScore >= 0.70) threshold -= 0.08;
 
-            return Math.max(0.28, threshold);
+            return Math.max(0.20, threshold);
         };
 
         const normalizeEmbeddingOutput = (output) => {
@@ -552,12 +632,15 @@
                 addLog('Подключение Transformers.js...');
                 setLoadingProgress(10);
 
-                const hf = window.__HF;
+                const hf = window.transformers;
                 if (!hf?.pipeline) {
-                    throw new Error('Transformers.js module not loaded');
+                    throw new Error('Transformers.js library not loaded');
                 }
 
-                const { pipeline } = hf;
+                const { pipeline, env } = hf;
+                env.allowRemoteModels = true;
+                env.allowLocalModels = false;
+                env.useBrowserCache = true;
 
                 const errors = [];
 
@@ -572,11 +655,7 @@
                         });
 
                         addLog(`✓ Модель загружена: ${candidate.id}`);
-                        return {
-                            extractor,
-                            kind: candidate.kind,
-                            name: candidate.id
-                        };
+                        return { extractor, kind: candidate.kind, name: candidate.id };
                     } catch (err) {
                         const msg = err?.message || String(err);
                         errors.push(`${candidate.id}: ${msg}`);
@@ -622,10 +701,12 @@
 
                 const normalizedInput = normalizeForSearch(inputText);
                 const canonicalInput = applyQueryRules(inputText);
+                const correctedInput = normalizeQuerySmart(canonicalInput);
                 const topic = detectTopic(inputText);
                 const queryVariants = buildQueryVariants(inputText);
-                const inputTokens = tokenize(canonicalInput);
+                const inputTokens = tokenize(correctedInput);
 
+                // 1) Жёсткие совпадения по фразам/ключам
                 for (const fact of factProfiles) {
                     const anchors = unique([
                         ...(fact.keywords || []).map(normalizeForSearch),
@@ -645,16 +726,17 @@
                     }
                 }
 
+                // 2) Лексика + морфология + typo correction
                 let bestLexicalFact = null;
                 let bestLexicalScore = -1;
                 let bestFactTopic = 'general';
 
                 for (const fact of factProfiles) {
-                    let score = computeLexicalScore(canonicalInput, fact);
+                    let score = computeLexicalScore(correctedInput, fact);
                     const factTopic = fact.topic;
 
                     if (topic !== 'general' && factTopic === topic) score += 0.10;
-                    if (inputTokens.length <= 2 && topic !== 'general') score += 0.06;
+                    if (inputTokens.length <= 2 && topic !== 'general') score += 0.05;
 
                     if (score > bestLexicalScore) {
                         bestLexicalScore = score;
@@ -663,36 +745,26 @@
                     }
                 }
 
-                const lexicalThreshold = inputTokens.length <= 2 ? 0.42 : 0.30;
-                const strongLexical = bestLexicalScore >= lexicalThreshold;
-
                 const semanticReady = (
                     modelUSE &&
                     factVectorsRef.current &&
                     factVectorsRef.current.length === factProfiles.length &&
-                    inputTokens.length >= 2
+                    inputTokens.length >= 1 &&
+                    correctedInput.length >= 2
                 );
 
+                // Если семантика ещё не поднялась, всё равно даём нормальный fallback.
                 if (!semanticReady) {
-                    if (strongLexical) {
-                        return {
-                            fact: bestLexicalFact,
-                            lexicalScore: bestLexicalScore,
-                            semanticScore: 0,
-                            combinedScore: bestLexicalScore,
-                            reason: `lexical_only topic=${bestFactTopic}`
-                        };
-                    }
-
                     return {
-                        fact: null,
+                        fact: bestLexicalFact,
                         lexicalScore: bestLexicalScore,
                         semanticScore: 0,
                         combinedScore: bestLexicalScore,
-                        reason: 'not_enough_signal'
+                        reason: `lexical_only topic=${bestFactTopic}`
                     };
                 }
 
+                // 3) Семантика
                 const queryVectors = [];
                 for (const variant of queryVariants) {
                     const qVec = await embedText(modelUSE, modelKind, variant, true);
@@ -711,7 +783,7 @@
                         if (sim > semanticBest) semanticBest = sim;
                     }
 
-                    const lexicalScore = computeLexicalScore(canonicalInput, fact);
+                    const lexicalScore = computeLexicalScore(correctedInput, fact);
                     const factTopic = fact.topic;
                     const topicBoost = topic !== 'general' && factTopic === topic ? 0.08 : 0;
 
@@ -742,7 +814,7 @@
 
                 const acceptable = (
                     best.combinedScore >= threshold ||
-                    (best.lexicalScore >= 0.42 && best.semanticScore >= 0.32)
+                    (best.lexicalScore >= 0.24 && best.semanticScore >= 0.24)
                 );
 
                 if (!acceptable) {
@@ -770,9 +842,9 @@
 
                 try {
                     if (isGarbageQuery(startText)) {
-                        setGeneratedText('Запрос слишком короткий или шумный. Напиши нормальный вопрос, например: "кто директор школы?" или "где находится школа?"');
+                        setGeneratedText('Запрос слишком короткий или шумный. Напиши нормальный вопрос, например: "кто директор школы?" или "пптание в школе?"');
                         setIsError(true);
-                        addLog('⚠ Отброшен мусорный ввод до семантики');
+                        addLog('⚠ Отброшен мусорный ввод');
                         return;
                     }
 
