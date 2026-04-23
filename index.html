@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIzluchinsk - МБОУ Излучинская ОСШУИОП №2</title>
-
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Browser-only Transformers.js (UMD/global build) -->
-    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js"></script>
-</head>
-<body>
-    <div id="root"></div>
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
 
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+        window.HFTransformers = { pipeline, env };
+    </script>
     <script type="text/babel">
+
         const { useState, useEffect, useRef } = React;
 
-        // =========================
-        // БАЗА ФАКТОВ НЕ МЕНЯЕТСЯ
-        // =========================
         const facts = [
+
+
             {
                 text: "Директор школы — Африкян Татьяна Григорьевна, которая отвечает за организацию и качество образовательного процесса, управление педагогическим коллективом и развитие образовательной среды.",
                 keywords: ["директор", "директора", "директору", "руководитель", "руководителя", "руководителю", "глава", "главы", "главе", "африкян", "татьяна", "григорьевна", "управление", "управляет", "руководит"]
@@ -30,6 +30,10 @@
             {
                 text: "МБОУ «Излучинская ОСШУИОП №2» находится в посёлке Излучинск.",
                 keywords: ["расположена", "расположение", "где", "место", "адрес", "излучинск", "посёлок", "поселок", "находится"]
+            },
+            {
+                text: "У школы есть официальное сообщество во ВКонтакте: https://vk.com/public214281372. В группе публикуются новости школы, объявления, фото, видео, анонсы мероприятий и другая полезная информация.",
+                keywords: ["вк", "vk", "vk.com", "вконтакте", "во вконтакте", "в вк", "во вк", "соцсеть", "соцсети", "соцсетей", "соцсетям", "соцсетях", "социальная сеть", "социальные сети", "социальной сети", "социальных сетей", "социальным сетям", "социальными сетями", "сеть", "сети", "сообщество", "сообщества", "сообществу", "сообществом", "сообществах", "группа", "группы", "группе", "группу", "группой", "группах", "паблик", "паблика", "паблику", "паблике", "публичная страница", "страница", "страницы", "странице", "страницу", "страничка", "странички", "страничке", "страничку", "новости", "новость", "новостей", "новостями", "объявление", "объявления", "объявлений", "объявлениями", "пост", "поста", "посту", "посте", "посты", "постов", "постами", "запись", "записи", "записью", "записей", "публикация", "публикации", "публикаций", "публикациями", "комментарии", "комментарий", "комментариев", "обсуждение", "обсуждения", "обсуждений", "обсуждениями", "фото", "фотки", "фоток", "фотками", "фоточками", "фотографии", "фотография", "фотографий", "фотографиями", "снимок", "снимки", "снимков", "снимками", "альбом", "альбома", "альбому", "альбоме", "альбомы", "альбомов", "альбомами", "видео", "видеозапись", "видеозаписи", "видеозаписей", "анонс", "анонсы", "анонса", "анонсов", "мероприятия", "мероприятие", "мероприятий", "мероприятиями", "ссылка", "ссылки", "ссылке", "ссылку", "перейти", "переход", "подписаться", "подписка", "подписки", "подписчиком", "подписчики", "подписчиков", "подпишись", "паблики", "группы школы", "школьный вк", "школа вк", "вк группы", "вк группа", "vk группа", "vk группы"]
             },
             {
                 text: "В школе преподают математику, русский язык, литературу, английский язык, химию, физику, информатику, географию, обществознание, вероятность и статистику, историю, технологию, ОБЗР, биологию, музыку и физическую культуру. Проводятся лабораторные работы, практические занятия и проектная деятельность.",
@@ -115,6 +119,8 @@
 
         const defaultTrainingText = `Муниципальное бюджетное общеобразовательное учреждение «Излучинская основная средняя школа с углублённым изучением отдельных предметов № 2» (МБОУ «Излучинская ОСШУИОП № 2») является современной общеобразовательной организацией, расположенной в посёлке Излучинск. Школа осуществляет обучение по основным общеобразовательным программам и ориентирована на обеспечение качества образования, всестороннее развитие личности обучающихся, формирование устойчивых знаний, а также развитие интеллектуальных, творческих и социальных компетенций учащихся.
 
+У школы есть официальное сообщество во ВКонтакте по ссылке https://vk.com/public214281372, где публикуются новости, объявления, фотографии и анонсы мероприятий.
+
 Руководство образовательной организацией осуществляет директор Африкян Татьяна Григорьевна, которая отвечает за организацию и качество образовательного процесса, управление педагогическим коллективом, координацию учебной и воспитательной деятельности, а также за развитие образовательной среды школы.
 
 Образовательный процесс в школе реализуется по широкому спектру учебных дисциплин, соответствующих федеральным государственным образовательным стандартам. В учебный план входят математика, русский язык, литература, английский язык, химия, физика, информатика, изобразительное искусство, физическая культура, география, обществознание, вероятность и статистика, история, технология, основы безопасности и защиты Родины (ОБЗР), биология и музыка.
@@ -125,492 +131,586 @@
 
 Питание обучающихся организовано в школьной столовой на 264 посадочных места. По итогам 2024 года четыре выпускника были награждены золотыми медалями. В 2024–2025 учебном году обучающиеся стали 204 призёрами и 92 победителями Всероссийской олимпиады школьников.`;
 
-        // =========================
-        // NLP / SEARCH LAYER
-        // =========================
+        const MODEL_ID = 'Xenova/multilingual-e5-small';
+
+        const TOPIC_GROUPS = {
+            social: ['vk', 'вк', 'вконтакте', 'соцсеть', 'соцсети', 'социальная сеть', 'социальные сети', 'сообщество', 'группа', 'паблик', 'страница', 'пост', 'публикация', 'новость', 'новости', 'объявление', 'объявления', 'фото', 'фотки', 'фотографии', 'снимки', 'альбом', 'видео', 'анонс', 'анонсы'],
+            director: ['директор', 'руководитель', 'глава', 'администрация', 'управление', 'директору', 'директора', 'директором', 'руководителя', 'руководителю'],
+            teachers: ['учитель', 'учителя', 'учителей', 'педагог', 'педагоги', 'преподаватель', 'преподаватели', 'кто ведёт', 'кто ведет', 'кто преподаёт', 'кто преподает', 'состав', 'коллектив', 'педсостав'],
+            subjects: ['математика', 'русский язык', 'литература', 'английский язык', 'химия', 'физика', 'информатика', 'география', 'обществознание', 'история', 'технология', 'обзр', 'обж', 'биология', 'музыка', 'физкультура', 'физическая культура', 'вероятность', 'статистика'],
+            contacts: ['телефон', 'номер', 'контакты', 'контакт', 'связаться', 'позвонить', 'заявление', 'приём', 'прием', 'поступление', 'запись', 'записаться'],
+            food: ['питание', 'столовая', 'еда', 'обед', 'завтрак', 'меню', 'кормят', 'посадочные места'],
+            achievements: ['достижения', 'результаты', 'победы', 'медали', 'олимпиада', 'призёры', 'призеры', 'победители'],
+        };
+
+        const SYNONYMS = {
+            директор: ['директор', 'руководитель', 'глава', 'администрация', 'начальник', 'заведующий', 'заведует', 'управляет'],
+            учитель: ['учитель', 'педагог', 'преподаватель', 'педсостав', 'педагогический', 'состав', 'преподы', 'кто ведет', 'кто ведёт', 'кто преподает', 'кто преподаёт'],
+            школа: ['школа', 'школьный', 'учебное заведение', 'лицей', 'гимназия', 'образовательная организация'],
+            математика: ['математика', 'алгебра', 'геометрия', 'вероятность', 'статистика', 'матан', 'математик'],
+            русский: ['русский', 'русский язык', 'литература', 'словесность'],
+            английский: ['английский', 'английский язык', 'иностранный', 'инглиш', 'english'],
+            химия: ['химия', 'химик', 'химичка', 'лабораторные', 'реакции'],
+            физика: ['физика', 'физик', 'эксперименты', 'механика', 'электричество'],
+            биология: ['биология', 'биолог', 'природа', 'живое', 'организмы'],
+            история: ['история', 'историк', 'прошлое', 'обществознание'],
+            информатика: ['информатика', 'икт', 'компьютер', 'программирование', 'цифровые технологии'],
+            технология: ['технология', 'труд', 'мастерская', 'ручной труд'],
+            физкультура: ['физкультура', 'физическая культура', 'спорт', 'физра', 'урок спорта'],
+            музыка: ['музыка', 'муз', 'музык'],
+            география: ['география', 'географ', 'карта', 'страны'],
+            обзр: ['обзр', 'обж', 'безопасность', 'защита родины', 'основы безопасности'],
+            питание: ['питание', 'столовая', 'еда', 'обед', 'завтрак', 'меню', 'кормят'],
+            достижения: ['достижения', 'результаты', 'успехи', 'победы', 'медали', 'олимпиада', 'призёры', 'призеры'],
+            social: ['вк', 'vk', 'вконтакте', 'соцсети', 'соцсеть', 'социальные сети', 'группа', 'паблик', 'фото', 'фотки', 'фотографии', 'новости', 'объявления', 'видео'],
+        };
 
         const STOPWORDS = new Set([
-            'и','в','во','на','не','что','это','как','а','но','к','ко','по','из','у','о','об','от','до','за','для','с','со',
-            'я','ты','он','она','оно','мы','вы','они','его','её','ее','их','мой','твой','наш','ваш','ли','же','бы','быть',
-            'всё','все','весь','эта','это','эти','тот','та','то','те','там','тут','здесь','кто','куда','где','когда',
-            'почему','зачем','какой','какая','какие','какое','каких','каким','какими','каком','какую',
-            'при','над','под','между','через','без','про','после','перед','если','или','ну',
-            'вопрос','ответ','пожалуйста','скажите','подскажите','можно','нужно'
+            'и', 'в', 'во', 'на', 'но', 'а', 'к', 'ко', 'с', 'со', 'по', 'за', 'от', 'до', 'из', 'у', 'для', 'о', 'об', 'обо',
+            'что', 'кто', 'где', 'как', 'какой', 'какая', 'какие', 'каких', 'какому', 'каким', 'какую', 'ли', 'же', 'или', 'это',
+            'тот', 'та', 'те', 'то', 'весь', 'все', 'всех', 'вся', 'его', 'её', 'их', 'там', 'тут', 'сюда', 'туда', 'здесь', 'нет',
+            'бы', 'уж', 'ну'
         ]);
 
-        const SHORT_OK = new Set([
-            'директор','школа','питание','столовая','учителя','учитель','предмет','предметы',
-            'поступление','адрес','излучинск','химия','русский','английский','математика',
-            'физика','биология','история','обществознание','география','информатика',
-            'технология','обзр','музыка','спорт'
-        ]);
+        const RU_VOWELS = new Set(['а', 'е', 'ё', 'и', 'о', 'у', 'ы', 'э', 'ю', 'я']);
+        const ABBREVIATIONS = new Set(['обж', 'обзр', 'икт', 'егэ', 'огэ', 'впр', 'гэ', 'мбоу', 'сош', 'осш', 'фгос']);
 
-        const STEM_SUFFIXES = [
-            'иями','ями','ами','ого','его','ему','ому','иях','иям','ием','ией','ий','ый','ой','ая','яя','ое','ее','ые','ие','ых','их','ую','юю','ью',
-            'ется','ются','ешься','ишься','ешь','ете','ите','ать','ять','ить','еть','уть','ють','ал','ел','ил','ул','ыл','ыла','ало','яли','йте',
-            'ами','ями','ах','ях','ом','ем','ам','ям','ов','ев','ие','ье','ия','ья',
-            'а','я','о','е','ы','и','у','ю','ь'
-        ].sort((a, b) => b.length - a.length);
-
-        const TOKEN_SYNONYMS = {
-            'преподает': 'учитель',
-            'преподаёт': 'учитель',
-            'преподаватель': 'учитель',
-            'преподаватели': 'учитель',
-            'учит': 'учитель',
-            'ведет': 'учитель',
-            'ведёт': 'учитель',
-            'учительница': 'учитель',
-            'руководитель': 'директор',
-            'глава': 'директор',
-            'адрес': 'расположение',
-            'место': 'расположение',
-            'поселок': 'излучинск',
-            'посёлок': 'излучинск',
-            'обж': 'обзр',
-            'безопасность': 'обзр',
-            'физрук': 'физкультура',
-            'икт': 'информатика',
-            'компьютер': 'информатика',
-            'программирование': 'информатика',
-            'спорт': 'физкультура',
-            'физра': 'физкультура',
-            'литературы': 'литература',
-            'русского': 'русский',
-            'английского': 'английский',
-            'математики': 'математика',
-            'математик': 'математика',
-            'географии': 'география',
-            'истории': 'история',
-            'биологии': 'биология',
-            'химии': 'химия',
-            'физики': 'физика',
-            'музыки': 'музыка',
-            'технологии': 'технология',
-            'обществознания': 'обществознание',
-            'столовая': 'питание',
-            'обед': 'питание',
-            'завтрак': 'питание',
-            'еда': 'питание',
-            'кормят': 'питание',
-            'медаль': 'достижение',
-            'медали': 'достижение',
-            'олимпиада': 'достижение',
-            'призёры': 'достижение',
-            'призеры': 'достижение',
-            'победители': 'достижение',
-            'достижения': 'достижение',
-            'результаты': 'достижение'
-        };
-
-        const QUERY_EXPANSIONS = {
-            director: ['директор руководитель глава администрация школа'],
-            location: ['адрес расположение где находится школа'],
-            curriculum: ['учебный план предметы уроки дисциплины'],
-            staff: ['учителя педагоги преподаватели состав коллектив'],
-            chemistry: ['учитель химии химия лабораторные работы'],
-            russian: ['учитель русского языка и литературы'],
-            english: ['учитель английского языка'],
-            math: ['учитель математики вероятность и статистика'],
-            physics: ['учитель физики эксперименты'],
-            biology: ['учитель биологии'],
-            history_social: ['учитель истории обществознания'],
-            geography: ['учитель географии'],
-            technology: ['учитель технологии труд'],
-            obzr: ['ОБЗР основы безопасности и защиты Родины'],
-            informatics: ['учитель информатики компьютеры'],
-            pe: ['учитель физкультуры спорт'],
-            music: ['учитель музыки'],
-            food: ['столовая питание меню'],
-            achievements: ['олимпиада призёры победители медали'],
-            admissions: ['поступление заявление телефон']
-        };
-
-        const TOPIC_PATTERNS = {
-            director: ['директор', 'руководитель', 'глава', 'администрация', 'африкян'],
-            location: ['где', 'адрес', 'расположена', 'расположен', 'находится', 'излучинск', 'посёлок', 'поселок'],
-            curriculum: ['предмет', 'предметы', 'урок', 'уроки', 'дисциплина', 'учебный план', 'обучение'],
-            staff: ['учителя', 'учителей', 'педагоги', 'педагогический состав', 'педсостав', 'коллектив', 'состав'],
-            chemistry: ['химия', 'химию', 'химии', 'лабораторные'],
-            russian: ['русский', 'литература', 'русского', 'литературы'],
-            english: ['английский', 'иностранный', 'английского'],
-            math: ['математика', 'вероятность', 'статистика', 'математик'],
-            physics: ['физика', 'физику', 'физики'],
-            biology: ['биология', 'биологию', 'биологии'],
-            history_social: ['история', 'обществознание'],
-            geography: ['география', 'географию', 'географии'],
-            technology: ['технология', 'труд'],
-            obzr: ['обзр', 'обж', 'безопасность'],
-            informatics: ['информатика', 'икт', 'компьютер', 'программирование'],
-            pe: ['физкультура', 'физическая культура', 'спорт'],
-            music: ['музыка', 'музыку'],
-            food: ['столовая', 'питание', 'меню', 'обед', 'завтрак'],
-            achievements: ['олимпиада', 'медали', 'медаль', 'призёры', 'призеры', 'победители', 'достижения'],
-            admissions: ['поступление', 'заявление', 'приём', 'прием', 'зачисление', 'записаться', 'телефон', 'контакты']
-        };
-
-        const MODEL_CANDIDATES = [
-            { id: 'Xenova/multilingual-e5-small', kind: 'e5' },
-            { id: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', kind: 'mini' }
-        ];
-
-        const unique = arr => [...new Set(arr.filter(Boolean))];
-
-        const normalizeForSearch = (text) => {
-            return (text || '')
+        const normalizeText = (text) => (
+            (text || '')
                 .toLowerCase()
                 .replace(/ё/g, 'е')
-                .replace(/[“”"«»'`.,!?;:()[\]{}<>\/\\|@#$%^&*_+=~—-]/g, ' ')
+                .replace(/№/g, ' номер ')
+                .replace(/[\u2013\u2014]/g, ' ')
+                .replace(/['’`]/g, '')
+                .replace(/[^a-zа-я0-9]+/gi, ' ')
                 .replace(/\s+/g, ' ')
-                .trim();
-        };
+                .trim()
+        );
 
-        const collapseRepeats = (word) => word.replace(/([a-zа-яё])\1+/gi, '$1');
+        const tokenize = (text) => normalizeText(text).split(' ').filter(Boolean);
+
+        const hasVowel = (word) => [...word].some(ch => RU_VOWELS.has(ch));
 
         const stemRu = (word) => {
-            let w = normalizeForSearch(word).replace(/\s+/g, '');
-            if (w.length <= 2) return w;
-            w = collapseRepeats(w);
+            let w = normalizeText(word);
+            if (!w) return '';
+            if (w.length <= 3) return w;
 
-            for (const suf of STEM_SUFFIXES) {
-                if (w.length > suf.length + 2 && w.endsWith(suf)) {
-                    w = w.slice(0, -suf.length);
-                    break;
+            const suffixes = [
+                'иями', 'ями', 'ами', 'его', 'ого', 'ему', 'ому', 'ыми', 'ими',
+                'иях', 'ьях', 'ах', 'ях', 'ам', 'ям', 'ом', 'ем',
+                'ей', 'ой', 'ий', 'ый', 'ая', 'яя', 'ое', 'ее', 'ую', 'юю',
+                'ов', 'ев', 'ие', 'ые', 'их', 'ых', 'ия', 'ья', 'ию', 'ью',
+                'а', 'я', 'е', 'и', 'ы', 'о', 'у', 'ю', 'ь'
+            ];
+
+            for (const suffix of suffixes) {
+                if (w.length > 4 && w.endsWith(suffix)) {
+                    const sliced = w.slice(0, -suffix.length);
+                    if (sliced.length >= 3) return sliced;
                 }
             }
 
             return w;
         };
 
-        const normalizeToken = (token) => {
-            const stem = stemRu(token);
-            return TOKEN_SYNONYMS[stem] || TOKEN_SYNONYMS[token] || stem;
+        const cosineSimilarity = (vecA, vecB) => {
+            let dot = 0;
+            let normA = 0;
+            let normB = 0;
+            const len = Math.min(vecA.length, vecB.length);
+
+            for (let i = 0; i < len; i++) {
+                dot += vecA[i] * vecB[i];
+                normA += vecA[i] * vecA[i];
+                normB += vecB[i] * vecB[i];
+            }
+
+            return dot / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-8);
         };
 
-        const tokenize = (text) => {
-            return normalizeForSearch(text)
-                .split(/\s+/)
-                .map(normalizeToken)
-                .filter(tok => tok && tok.length > 1 && !STOPWORDS.has(tok));
+        const charNgrams = (text, n = 3) => {
+            const compact = normalizeText(text).replace(/\s+/g, '');
+            const grams = new Set();
+            if (compact.length < n) {
+                if (compact) grams.add(compact);
+                return grams;
+            }
+            for (let i = 0; i <= compact.length - n; i++) {
+                grams.add(compact.slice(i, i + n));
+            }
+            return grams;
+        };
+
+        const jaccard = (setA, setB) => {
+            if (!setA.size || !setB.size) return 0;
+            let intersection = 0;
+            for (const item of setA) {
+                if (setB.has(item)) intersection++;
+            }
+            return intersection / (setA.size + setB.size - intersection + 1e-8);
+        };
+
+        const buildCharProfile = (factsList, n = 3, limit = 220) => {
+            const freq = new Map();
+
+            for (const fact of factsList) {
+                const source = `${fact.text} ${fact.keywords.join(' ')}`;
+                const compact = normalizeText(source).replace(/[^a-zа-я]+/gi, '');
+                if (compact.length < n) continue;
+
+                for (let i = 0; i <= compact.length - n; i++) {
+                    const gram = compact.slice(i, i + n);
+                    freq.set(gram, (freq.get(gram) || 0) + 1);
+                }
+            }
+
+            return new Set(
+                [...freq.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, limit)
+                    .map(([gram]) => gram)
+            );
+        };
+
+        const COMMON_TRIGRAMS = buildCharProfile(facts, 3, 260);
+
+        const charProfileHitRate = (text, profile = COMMON_TRIGRAMS, n = 3) => {
+            const compact = normalizeText(text).replace(/\s+/g, '');
+            if (compact.length < n) return 0;
+
+            let hits = 0;
+            let total = 0;
+
+            for (let i = 0; i <= compact.length - n; i++) {
+                total++;
+                if (profile.has(compact.slice(i, i + n))) hits++;
+            }
+
+            return total ? hits / total : 0;
+        };
+
+        const countConsonantClusters = (word) => {
+            const matches = word.match(/[бвгджзйклмнпрстфхцчшщ]{4,}/gi);
+            return matches ? matches.length : 0;
+        };
+
+        const tokenNoiseScore = (token) => {
+            if (!token) return 0;
+            let score = 0;
+            const hasLetters = /[a-zа-я]/i.test(token);
+            const hasDigits = /\d/.test(token);
+
+            if (ABBREVIATIONS.has(token)) return 1;
+
+            if (hasDigits && hasLetters) score -= 1.1;
+            else if (hasDigits) score -= 0.9;
+
+            if (STOPWORDS.has(token)) score += 0.2;
+            if (hasLetters) score += 0.15;
+
+            if (hasVowel(token)) score += 0.5;
+            else if (token.length > 3) score -= 0.65;
+
+            if (token.length >= 6 && countConsonantClusters(token) > 0) score -= 0.45;
+            if (/(.)\1{3,}/.test(token)) score -= 0.9;
+
+            if (/^[a-zа-я]+$/i.test(token) && token.length >= 4) {
+                const trigramHitRate = charProfileHitRate(token);
+                if (trigramHitRate >= 0.28) score += 0.45;
+                else if (trigramHitRate >= 0.18) score += 0.2;
+                else if (trigramHitRate < 0.08) score -= 0.55;
+            }
+
+            if (token.length <= 2 && hasLetters) score += 0.1;
+            if (token.length >= 10 && !hasVowel(token)) score -= 0.9;
+
+            return score;
+        };
+
+        const isWordLike = (token) => {
+            if (!token) return false;
+            if (ABBREVIATIONS.has(token)) return true;
+            if (!/^[a-zа-я0-9]+$/i.test(token)) return false;
+            if (/\d/.test(token) && /[a-zа-я]/i.test(token)) return false;
+            if (/^\d+$/.test(token)) return false;
+            if (/(.)\1{4,}/.test(token)) return false;
+            return /[a-zа-я]/i.test(token);
         };
 
         const levenshtein = (a, b) => {
-            if (a === b) return 0;
-            if (!a.length) return b.length;
-            if (!b.length) return a.length;
-
-            const matrix = Array.from({ length: b.length + 1 }, () => []);
-            for (let i = 0; i <= b.length; i++) matrix[i][0] = i;
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
             for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
 
             for (let i = 1; i <= b.length; i++) {
                 for (let j = 1; j <= a.length; j++) {
                     matrix[i][j] = b[i - 1] === a[j - 1]
                         ? matrix[i - 1][j - 1]
-                        : Math.min(
-                            matrix[i - 1][j - 1] + 1,
-                            matrix[i][j - 1] + 1,
-                            matrix[i - 1][j] + 1
-                        );
+                        : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
                 }
             }
-
             return matrix[b.length][a.length];
         };
 
-        const cosineSimilarity = (vecA, vecB) => {
-            let dot = 0, normA = 0, normB = 0;
-            const len = Math.min(vecA.length, vecB.length);
-            for (let i = 0; i < len; i++) {
-                dot += vecA[i] * vecB[i];
-                normA += vecA[i] * vecA[i];
-                normB += vecB[i] * vecB[i];
-            }
-            return dot / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-8);
+        const normalizedEditDistance = (a, b) => {
+            const maxLen = Math.max(a.length, b.length);
+            if (!maxLen) return 0;
+            return levenshtein(a, b) / maxLen;
         };
 
-        const isGarbageQuery = (text) => {
-            const n = normalizeForSearch(text);
-            if (!n) return true;
-
-            const letters = (n.match(/[a-zа-яё]/gi) || []).length;
-            if (letters < 2) return true;
-
-            const compact = n.replace(/\s/g, '');
-            if (compact.length < 2) return true;
-            if (/^(.)\1{4,}$/.test(compact)) return true;
-            if (!/[a-zа-яё]/i.test(n)) return true;
-
-            const tokens = tokenize(n);
-            if (tokens.length === 0) return true;
-
-            const hasNormalToken = tokens.some(t => t.length >= 3 || SHORT_OK.has(t));
-            if (!hasNormalToken) return true;
-
-            if (tokens.length === 1 && tokens[0].length < 2 && !SHORT_OK.has(tokens[0])) return true;
-
-            return false;
-        };
-
-        const detectTopic = (text) => {
-            const n = normalizeForSearch(text);
-            const t = new Set(tokenize(n));
-
-            let bestTopic = 'general';
-            let bestScore = 0;
-
-            for (const [topic, patterns] of Object.entries(TOPIC_PATTERNS)) {
-                let score = 0;
-                for (const p of patterns) {
-                    const pp = normalizeForSearch(p);
-                    if (pp.includes(' ')) {
-                        if (n.includes(pp)) score += 2;
-                    } else {
-                        const stem = normalizeToken(pp);
-                        if (t.has(stem) || t.has(pp)) score += 1;
-                    }
-                }
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestTopic = topic;
+        const buildTopicLookup = () => {
+            const lookup = new Map();
+            for (const [topic, words] of Object.entries(TOPIC_GROUPS)) {
+                for (const word of words) {
+                    const n = normalizeText(word);
+                    if (!lookup.has(n)) lookup.set(n, new Set());
+                    lookup.get(n).add(topic);
                 }
             }
-
-            return bestScore >= 1 ? bestTopic : 'general';
+            return lookup;
         };
 
-        const applyQueryRules = (text) => {
-            let out = normalizeForSearch(text);
+        const TOPIC_LOOKUP = buildTopicLookup();
 
-            out = out
-                .replace(/\bкто\s+(?:ведет|ведёт|преподает|преподаёт|учит)\b/g, 'учитель')
-                .replace(/\bкто\s+директор\b/g, 'директор')
-                .replace(/\bкто\s+работает\b/g, 'состав')
-                .replace(/\bгде\s+(?:находится|расположена|расположен)\b/g, 'адрес')
-                .replace(/\bкакие\s+предметы\b/g, 'предметы')
-                .replace(/\bкакие\s+уроки\b/g, 'предметы')
-                .replace(/\bкак\s+поступить\b/g, 'поступление')
-                .replace(/\bкак\s+записаться\b/g, 'поступление')
-                .replace(/\bприем\s+заявлений\b/g, 'поступление')
-                .replace(/\bпитание\b/g, 'столовая')
-                .replace(/\bстоловая\b/g, 'столовая')
-                .replace(/\bдостижения\b/g, 'результаты')
-                .replace(/\bпобедители\b/g, 'результаты')
-                .replace(/\bпризеры\b/g, 'результаты')
-                .replace(/\bпризёры\b/g, 'результаты')
-                .replace(/\bмедали\b/g, 'результаты');
-
-            return out.replace(/\s+/g, ' ').trim();
+        const topicHitsForText = (text) => {
+            const tokens = tokenize(text);
+            const hits = new Set();
+            for (const token of tokens) {
+                const n = normalizeText(token);
+                if (TOPIC_LOOKUP.has(n)) {
+                    for (const t of TOPIC_LOOKUP.get(n)) hits.add(t);
+                }
+            }
+            return hits;
         };
 
-        const buildFactVocab = () => {
+        const buildFactExpansion = (keywords) => {
+            const expanded = new Set();
+            for (const keyword of keywords) {
+                const norm = normalizeText(keyword);
+                if (!norm) continue;
+                expanded.add(norm);
+                const parts = norm.split(' ').filter(Boolean);
+                for (const part of parts) {
+                    expanded.add(part);
+                    expanded.add(stemRu(part));
+                }
+                const topicHits = topicHitsForText(norm);
+                for (const topic of topicHits) {
+                    for (const v of TOPIC_GROUPS[topic]) expanded.add(normalizeText(v));
+                }
+            }
+            return expanded;
+        };
+
+        const isProbablyGibberish = (text, tokens, expandedTokens) => {
+            const normalized = normalizeText(text);
+            if (normalized.length < 2) return true;
+
+            const compact = normalized.replace(/\s+/g, '');
+            const letters = (compact.match(/[a-zа-я]/gi) || []).length;
+            const digits = (compact.match(/\d/g) || []).length;
+            const total = compact.length || 1;
+
+            if (letters === 0) return true;
+
+            const scoredTokens = tokens
+                .filter(Boolean)
+                .map(token => ({ token, score: tokenNoiseScore(token) }));
+
+            const strongTokens = scoredTokens.filter(item => item.score >= 0.42);
+            const weakButValidTokens = scoredTokens.filter(item => item.score >= 0.20);
+
+            const semanticHint = charProfileHitRate(normalized);
+            const meaningfulTokenCount = strongTokens.length + weakButValidTokens.length;
+
+            if (meaningfulTokenCount === 0 && expandedTokens.length === 0) return true;
+
+            const digitHeavy = digits / total > 0.55;
+            const noUsefulShape = scoredTokens.length > 0 && scoredTokens.every(item => item.score < 0.15);
+
+            if (digitHeavy && strongTokens.length === 0) return true;
+            if (noUsefulShape) return true;
+
+            if (scoredTokens.length === 1) {
+                const only = scoredTokens[0];
+                if (only.score < 0.20 && semanticHint < 0.08) return true;
+                if (only.score < 0.30 && only.token.length >= 8 && semanticHint < 0.12) return true;
+            }
+
+            if (scoredTokens.length <= 2 && semanticHint < 0.08) {
+                const hasAnyRealWord = scoredTokens.some(item => item.score >= 0.30);
+                if (!hasAnyRealWord && !expandedTokens.length) return true;
+            }
+
+            const repeatedJunk = /(.)\1{4,}/.test(normalized);
+            return repeatedJunk;
+        };
+
+        const normalizeVectorOutput = (output) => {
+            if (!output) return [];
+            if (typeof output.tolist === 'function') return output.tolist();
+            if (Array.isArray(output)) return output;
+            if (output.data && Array.isArray(output.data)) return output.data;
+            return [];
+        };
+
+        const computeDocFreq = (factsList) => {
+            const df = new Map();
+            for (const fact of factsList) {
+                const source = `${fact.text} ${fact.keywords.join(' ')}`;
+                const tokens = [...new Set(
+                    tokenize(source)
+                        .filter(t => t && !STOPWORDS.has(t))
+                        .flatMap(t => [t, stemRu(t)])
+                        .filter(Boolean)
+                )];
+
+                for (const token of tokens) {
+                    df.set(token, (df.get(token) || 0) + 1);
+                }
+            }
+            return df;
+        };
+
+        const DOC_FREQ = computeDocFreq(facts);
+        const DOC_COUNT = facts.length;
+
+        const idf = (token) => {
+            const df = DOC_FREQ.get(token) || 0;
+            return Math.log((DOC_COUNT + 1) / (df + 1)) + 1;
+        };
+
+        const buildFactsIndex = (factsList) => {
+            const indexed = [];
             const vocab = new Set();
 
-            for (const fact of facts) {
-                const tokens = tokenize(fact.text);
-                tokens.forEach(t => vocab.add(t));
+            for (const fact of factsList) {
+                const searchText = `${fact.text} ${fact.keywords.join(' ')}`;
+                const textNorm = normalizeText(searchText);
+                const rawTokens = tokenize(textNorm).filter(t => t && !STOPWORDS.has(t));
+                const tokens = [...new Set(rawTokens)];
+                const stems = [...new Set(tokens.map(stemRu).filter(Boolean))];
+                const keywordExpansion = buildFactExpansion(fact.keywords);
+                const topicHits = topicHitsForText(searchText);
+                const topicExpansion = [...topicHits].flatMap(topic => TOPIC_GROUPS[topic].map(normalizeText));
 
-                (fact.keywords || []).forEach(k => {
-                    const t = normalizeToken(k);
-                    if (t) vocab.add(t);
+                tokens.forEach(t => vocab.add(t));
+                stems.forEach(t => vocab.add(t));
+                keywordExpansion.forEach(t => vocab.add(t));
+
+                const tokenWeights = new Map();
+                for (const token of [...new Set([...tokens, ...stems])]) {
+                    if (!token) continue;
+                    tokenWeights.set(token, idf(token));
+                }
+
+                const anchorTokens = [...new Set([
+                    ...tokens.filter(t => t.length >= 4 && !STOPWORDS.has(t)),
+                    ...stems.filter(t => t.length >= 4),
+                    ...keywordExpansion,
+                    ...topicExpansion
+                ])];
+
+                indexed.push({
+                    ...fact,
+                    searchText,
+                    textNorm,
+                    tokens,
+                    stemSet: new Set(stems),
+                    charNgrams: charNgrams(searchText),
+                    keywordSet: new Set([...keywordExpansion].map(stemRu).filter(Boolean)),
+                    topicSet: new Set([...topicHits]),
+                    anchorTokens,
+                    tokenWeights
                 });
             }
 
-            Object.keys(TOKEN_SYNONYMS).forEach(k => vocab.add(normalizeToken(k)));
-            Object.values(TOKEN_SYNONYMS).forEach(v => vocab.add(normalizeToken(v)));
-
-            return [...vocab].filter(Boolean);
+            return { indexed, vocab: [...vocab] };
         };
 
-        const FACT_VOCAB = buildFactVocab();
+        const { indexed: SEARCH_INDEX, vocab: VOCAB_LIST } = buildFactsIndex(facts);
 
-        const correctTokenByVocab = (token) => {
-            const t = normalizeToken(token);
-            if (!t || t.length < 3) return t;
-            if (SHORT_OK.has(t)) return t;
+        const expandQuery = (text) => {
+            const normalized = normalizeText(text);
+            const tokens = tokenize(normalized);
+            const expanded = new Set();
 
-            if (FACT_VOCAB.includes(t)) return t;
+            for (const token of tokens) {
+                if (!token) continue;
+                expanded.add(token);
 
-            let best = t;
-            let bestScore = 0;
+                const stem = stemRu(token);
+                if (stem) expanded.add(stem);
 
-            for (const cand of FACT_VOCAB) {
-                if (!cand || cand.length < 3) continue;
+                const topicHits = TOPIC_LOOKUP.get(token) || TOPIC_LOOKUP.get(stem);
+                if (topicHits) {
+                    for (const topic of topicHits) {
+                        for (const variant of TOPIC_GROUPS[topic]) expanded.add(normalizeText(variant));
+                    }
+                }
 
-                const lenDiff = Math.abs(cand.length - t.length);
-                if (lenDiff > 3) continue;
+                for (const [root, variants] of Object.entries(SYNONYMS)) {
+                    const rootNorm = normalizeText(root);
+                    if (
+                        token === rootNorm ||
+                        stem === rootNorm ||
+                        rootNorm.startsWith(token) ||
+                        token.startsWith(rootNorm) ||
+                        variants.some(v => {
+                            const vn = normalizeText(v);
+                            return vn === token || vn === stem;
+                        })
+                    ) {
+                        for (const variant of variants) expanded.add(normalizeText(variant));
+                    }
+                }
 
-                const dist = levenshtein(t, cand);
-                const maxLen = Math.max(t.length, cand.length);
-                const sim = 1 - dist / Math.max(maxLen, 1);
-
-                // Чуть сильнее любим короткие слова и варианты с общим началом
-                const prefixBonus = cand[0] === t[0] ? 0.08 : 0;
-                const score = sim + prefixBonus;
-
-                if (score > bestScore) {
-                    bestScore = score;
-                    best = cand;
+                if (token.length >= 3) {
+                    for (const vocabWord of VOCAB_LIST) {
+                        if (vocabWord.length < 3) continue;
+                        if (vocabWord.startsWith(token) || token.startsWith(vocabWord)) {
+                            expanded.add(vocabWord);
+                        }
+                    }
                 }
             }
 
-            // Не переусердствуем: исправляем только когда уверенность нормальная
-            return bestScore >= 0.58 ? best : t;
+            return [...expanded];
         };
 
-        const normalizeQuerySmart = (text) => {
-            const raw = normalizeForSearch(text);
-            const tokens = raw.split(/\s+/).filter(Boolean);
-            const corrected = tokens.map(correctTokenByVocab);
-            return corrected.join(' ');
+        const queryWeight = (token) => {
+            const n = normalizeText(token);
+            if (!n || STOPWORDS.has(n)) return 0;
+            return Math.max(0.75, idf(stemRu(n)));
         };
 
-        const buildQueryVariants = (inputText) => {
-            const raw = normalizeForSearch(inputText);
-            const canonical = applyQueryRules(inputText);
-            const corrected = normalizeQuerySmart(canonical);
-            const topic = detectTopic(inputText);
+        const tokenMatchScore = (queryToken, factToken) => {
+            if (!queryToken || !factToken) return 0;
+            if (queryToken === factToken) return 1;
+            const qStem = stemRu(queryToken);
+            const fStem = stemRu(factToken);
+            if (qStem && qStem === fStem) return 0.9;
+            if (queryToken.length >= 4 && factToken.startsWith(queryToken)) return 0.85;
+            if (factToken.length >= 4 && queryToken.startsWith(factToken)) return 0.8;
 
-            const variants = new Set([
-                raw,
-                canonical,
-                corrected,
-                collapseRepeats(raw),
-                tokenize(corrected).join(' ')
-            ]);
+            const len = Math.max(queryToken.length, factToken.length);
+            if (len < 4) return 0;
 
-            if (QUERY_EXPANSIONS[topic]) {
-                variants.add(`${corrected} ${QUERY_EXPANSIONS[topic].join(' ')}`);
-                variants.add(`${canonical} ${QUERY_EXPANSIONS[topic].join(' ')}`);
-            }
-
-            if (/(кто|чей|чья|чьё|чье)\s+(ведет|ведёт|преподает|преподаёт|учит)/.test(raw)) {
-                variants.add(`${corrected} учитель преподаватель`);
-            }
-
-            if (/(где|адрес|находится|расположена|расположен)/.test(raw)) {
-                variants.add(`${corrected} расположение посёлок школа`);
-            }
-
-            return [...variants].filter(Boolean);
+            const dist = normalizedEditDistance(queryToken, factToken);
+            if (len <= 5 && dist <= 0.25) return 0.72;
+            if (len <= 8 && dist <= 0.20) return 0.65;
+            if (dist <= 0.15) return 0.58;
+            return 0;
         };
 
-        const buildFactProfile = (fact) => {
-            const booster = unique([
-                ...(fact.keywords || []).map(normalizeForSearch),
-                ...tokenize(fact.text)
-            ]);
+        const measureLexicalMatch = (queryTokens, queryExpandedTokens, factIndex) => {
+            const fact = SEARCH_INDEX[factIndex];
+            const queryTerms = [...new Set([...queryTokens, ...queryExpandedTokens].filter(isWordLike))];
+            const queryStemSet = new Set(queryTerms.map(stemRu).filter(Boolean));
+            const queryTokenSet = new Set(queryTerms);
+
+            let matchedWeight = 0;
+            let totalWeight = 0;
+            let exactHits = 0;
+            let stemHits = 0;
+            let prefixHits = 0;
+            let fuzzyHits = 0;
+            let anchorHits = 0;
+            let topicHits = 0;
+
+            const factTokens = fact.tokens;
+            const factStemSet = fact.stemSet;
+
+            for (const token of queryTokenSet) {
+                const w = queryWeight(token);
+                if (!w) continue;
+                totalWeight += w;
+
+                let bestMatch = 0;
+
+                for (const factToken of factTokens) {
+                    const s = tokenMatchScore(token, factToken);
+                    if (s > bestMatch) bestMatch = s;
+                    if (bestMatch === 1) break;
+                }
+
+                if (bestMatch > 0) {
+                    matchedWeight += w * bestMatch;
+                }
+
+                if (factTokens.includes(token)) exactHits++;
+                if (factStemSet.has(stemRu(token))) stemHits++;
+                if (factTokens.some(f => f.startsWith(token) || token.startsWith(f))) prefixHits++;
+                if (factTokens.some(f => token.length >= 4 && f.length >= 4 && levenshtein(token, f) <= 2)) fuzzyHits++;
+                if (fact.anchorTokens.some(a => tokenMatchScore(token, a) >= 0.85)) anchorHits++;
+            }
+
+            const queryTermCount = queryTokenSet.size || 1;
+            const tokenCoverage = queryStemSet.size ? stemHits / queryStemSet.size : 0;
+            const exactCoverage = exactHits / queryTermCount;
+            const prefixCoverage = prefixHits / queryTermCount;
+            const fuzzyCoverage = fuzzyHits / queryTermCount;
+            const anchorCoverage = anchorHits / queryTermCount;
+
+            const queryTopics = topicHitsForText(queryTokens.join(' ')).size ? topicHitsForText(queryTokens.join(' ')) : topicHitsForText(queryExpandedTokens.join(' '));
+            if (queryTopics.size && fact.topicSet.size) {
+                for (const t of queryTopics) {
+                    if (fact.topicSet.has(t)) topicHits++;
+                }
+            }
+            const topicCoverage = queryTopics.size ? topicHits / queryTopics.size : 0;
+
+            const queryPhrase = normalizeText([...queryTokens, ...queryExpandedTokens].join(' '));
+            const factPhrase = fact.textNorm;
+
+            let phraseBoost = 0;
+            if (queryPhrase && factPhrase.includes(queryPhrase)) phraseBoost = 1;
+            else {
+                const queryParts = queryPhrase.split(' ').filter(Boolean);
+                if (queryParts.length >= 2) {
+                    const joined = queryParts.slice(0, 2).join(' ');
+                    if (factPhrase.includes(joined)) phraseBoost = 0.55;
+                }
+            }
+
+            const ngramScore = jaccard(charNgrams(queryPhrase || queryTokens.join(' ')), fact.charNgrams);
+
+            const weightedRecall = totalWeight ? matchedWeight / totalWeight : 0;
+            const lexical = Math.min(
+                1,
+                weightedRecall * 0.52 +
+                anchorCoverage * 0.16 +
+                topicCoverage * 0.14 +
+                exactCoverage * 0.08 +
+                tokenCoverage * 0.06 +
+                prefixCoverage * 0.02 +
+                fuzzyCoverage * 0.02 +
+                phraseBoost * 0.14 +
+                ngramScore * 0.18
+            );
 
             return {
-                ...fact,
-                topic: detectTopic(fact.text),
-                searchText: unique([
-                    fact.text,
-                    (fact.keywords || []).join(' ')
-                ]).join(' '),
-                normalizedText: normalizeForSearch(fact.text),
-                tokens: unique(tokenize(`${fact.text} ${(fact.keywords || []).join(' ')}`)),
-                anchors: booster
+                lexical,
+                weightedRecall,
+                exactCoverage,
+                tokenCoverage,
+                prefixCoverage,
+                fuzzyCoverage,
+                anchorCoverage,
+                topicCoverage,
+                phraseBoost,
+                ngramScore
             };
         };
 
-        const factProfiles = facts.map(buildFactProfile);
-
-        const computeLexicalScore = (queryText, factProfile) => {
-            const qTokens = unique(tokenize(queryText));
-            const fTokens = new Set(factProfile.tokens || []);
-
-            if (qTokens.length === 0) return 0;
-
-            if (qTokens.length === 1) {
-                const qt = qTokens[0];
-                let best = 0;
-
-                for (const ft of fTokens) {
-                    if (ft === qt) return 1;
-
-                    const dist = levenshtein(qt, ft);
-                    const maxLen = Math.max(qt.length, ft.length);
-                    const sim = 1 - dist / Math.max(maxLen, 1);
-                    if (sim > best) best = sim;
-                }
-
-                return Math.max(0, best);
-            }
-
-            let exact = 0;
-            let fuzzy = 0;
-            let correctedHit = 0;
-
-            for (const qt of qTokens) {
-                if (fTokens.has(qt)) {
-                    exact++;
-                    continue;
-                }
-
-                const corrected = correctTokenByVocab(qt);
-                if (fTokens.has(corrected)) {
-                    correctedHit++;
-                    continue;
-                }
-
-                if (qt.length < 3) continue;
-
-                let matched = false;
-                for (const ft of fTokens) {
-                    if (Math.abs(ft.length - qt.length) > 3) continue;
-                    const maxDistance = qt.length <= 4 ? 2 : 3;
-                    if (levenshtein(qt, ft) <= maxDistance) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (matched) fuzzy++;
-            }
-
-            const exactScore = exact / qTokens.length;
-            const fuzzyScore = fuzzy / qTokens.length;
-            const correctedScore = correctedHit / qTokens.length;
-
-            const nQuery = normalizeForSearch(queryText);
-            let phraseBoost = 0;
-
-            for (const anchor of (factProfile.anchors || [])) {
-                if (!anchor || anchor.length < 4) continue;
-                if (anchor.includes(' ') && nQuery.includes(anchor)) {
-                    phraseBoost = Math.max(phraseBoost, Math.min(0.25, 0.06 * anchor.split(' ').length));
-                }
-            }
-
-            return Math.min(1, exactScore * 0.54 + correctedScore * 0.24 + fuzzyScore * 0.16 + phraseBoost);
-        };
-
-        const calculateDynamicThreshold = (inputText, lexicalScore = 0) => {
-            const tokens = tokenize(inputText);
-            const count = tokens.length;
-
-            let threshold = 0.42;
-            if (count <= 1) threshold = 0.22;
-            else if (count <= 2) threshold = 0.30;
-            else if (count <= 4) threshold = 0.36;
-            else threshold = 0.38;
-
-            if (lexicalScore >= 0.35) threshold -= 0.03;
-            if (lexicalScore >= 0.55) threshold -= 0.06;
-            if (lexicalScore >= 0.70) threshold -= 0.08;
-
-            return Math.max(0.20, threshold);
-        };
-
-        const normalizeEmbeddingOutput = (output) => {
-            if (!output) return [];
-            if (output.data) return Array.from(output.data);
-            if (Array.isArray(output)) return Array.isArray(output[0]) ? output[0] : output;
-            if (typeof output.tolist === 'function') {
-                const list = output.tolist();
-                return Array.isArray(list[0]) ? list[0] : list;
-            }
-            return [];
+        const acceptanceThreshold = (queryTokensCount) => {
+            if (queryTokensCount <= 1) return 0.52;
+            if (queryTokensCount <= 2) return 0.48;
+            if (queryTokensCount <= 4) return 0.42;
+            if (queryTokensCount <= 7) return 0.37;
+            return 0.33;
         };
 
         const GenerativeTextAI = () => {
@@ -618,217 +718,75 @@
             const [generatedText, setGeneratedText] = useState('');
             const [logs, setLogs] = useState([]);
             const [modelUSE, setModelUSE] = useState(null);
-            const [modelKind, setModelKind] = useState(null);
-            const [modelName, setModelName] = useState('');
             const [isError, setIsError] = useState(false);
             const [isLoading, setIsLoading] = useState(true);
             const [loadingProgress, setLoadingProgress] = useState(0);
             const [isProcessing, setIsProcessing] = useState(false);
 
             const factVectorsRef = useRef([]);
-            const addLog = msg => setLogs(prev => [...prev.slice(-8), msg]);
+            const addLog = (msg) => setLogs(prev => [...prev.slice(-8), msg]);
 
-            const loadEmbeddingModel = async () => {
-                addLog('Подключение Transformers.js...');
-                setLoadingProgress(10);
-
-                const hf = window.transformers;
-                if (!hf?.pipeline) {
-                    throw new Error('Transformers.js library not loaded');
+            const waitForTransformers = async () => {
+                for (let i = 0; i < 120; i++) {
+                    if (window.HFTransformers?.pipeline) return window.HFTransformers;
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
+                throw new Error('Transformers.js не загрузился');
+            };
 
-                const { pipeline, env } = hf;
-                env.allowRemoteModels = true;
-                env.allowLocalModels = false;
-                env.useBrowserCache = true;
+            const embedTexts = async (texts, extractor) => {
+                const result = await extractor(texts, { pooling: 'mean', normalize: true });
+                return normalizeVectorOutput(result);
+            };
 
-                const errors = [];
+            useEffect(() => {
+                addLog('Подготовка браузерной семантической модели...');
+                setLoadingProgress(8);
 
-                for (let i = 0; i < MODEL_CANDIDATES.length; i++) {
-                    const candidate = MODEL_CANDIDATES[i];
+                (async () => {
                     try {
-                        addLog(`Пробую модель: ${candidate.id}`);
-                        setLoadingProgress(25 + i * 10);
+                        const { pipeline, env } = await waitForTransformers();
+                        env.useBrowserCache = true;
+                        env.allowRemoteModels = true;
 
-                        const extractor = await pipeline('feature-extraction', candidate.id, {
-                            device: 'wasm'
-                        });
+                        setLoadingProgress(20);
+                        addLog('Загрузка Transformers.js...');
 
-                        addLog(`✓ Модель загружена: ${candidate.id}`);
-                        return { extractor, kind: candidate.kind, name: candidate.id };
-                    } catch (err) {
-                        const msg = err?.message || String(err);
-                        errors.push(`${candidate.id}: ${msg}`);
-                        addLog(`⚠ ${candidate.id} не загрузилась`);
-                    }
-                }
+                        let extractor = null;
+                        const device = navigator.gpu ? 'webgpu' : 'wasm';
 
-                throw new Error(errors.join(' | ') || 'Не удалось загрузить модель');
-            };
-
-            const embedText = async (extractor, kind, text, isQuery = false) => {
-                const prepared = kind === 'e5'
-                    ? `${isQuery ? 'query:' : 'passage:'} ${text}`
-                    : text;
-
-                const output = await extractor(prepared, {
-                    pooling: 'mean',
-                    normalize: true
-                });
-
-                return normalizeEmbeddingOutput(output);
-            };
-
-            const prepareFactVectors = async (extractor, kind) => {
-                const vectors = [];
-                for (const fact of factProfiles) {
-                    const vec = await embedText(extractor, kind, fact.searchText, false);
-                    vectors.push(vec);
-                }
-                return vectors;
-            };
-
-            const rankFacts = async (inputText) => {
-                if (isGarbageQuery(inputText)) {
-                    return {
-                        fact: null,
-                        lexicalScore: 0,
-                        semanticScore: 0,
-                        combinedScore: 0,
-                        reason: 'garbage_query'
-                    };
-                }
-
-                const normalizedInput = normalizeForSearch(inputText);
-                const canonicalInput = applyQueryRules(inputText);
-                const correctedInput = normalizeQuerySmart(canonicalInput);
-                const topic = detectTopic(inputText);
-                const queryVariants = buildQueryVariants(inputText);
-                const inputTokens = tokenize(correctedInput);
-
-                // 1) Жёсткие совпадения по фразам/ключам
-                for (const fact of factProfiles) {
-                    const anchors = unique([
-                        ...(fact.keywords || []).map(normalizeForSearch),
-                        normalizeForSearch(fact.text)
-                    ]).filter(Boolean);
-
-                    for (const anchor of anchors) {
-                        if (anchor.length >= 4 && normalizedInput.includes(anchor)) {
-                            return {
-                                fact,
-                                lexicalScore: 1,
-                                semanticScore: 1,
-                                combinedScore: 1,
-                                reason: `exact:${anchor}`
-                            };
+                        try {
+                            extractor = await pipeline('feature-extraction', MODEL_ID, {
+                                device,
+                                dtype: 'q8'
+                            });
+                        } catch (firstError) {
+                            addLog('Пробую резервную конфигурацию модели...');
+                            extractor = await pipeline('feature-extraction', MODEL_ID, {
+                                device
+                            });
                         }
+
+                        setLoadingProgress(60);
+                        addLog(`Модель готова: ${MODEL_ID}`);
+                        setModelUSE(() => extractor);
+
+                        addLog('Кэширование эмбеддингов фактов...');
+                        const passages = SEARCH_INDEX.map(f => `passage: ${f.searchText}`);
+                        const vectors = await embedTexts(passages, extractor);
+                        factVectorsRef.current = vectors;
+
+                        setLoadingProgress(100);
+                        addLog('✓ Семантический слой активирован');
+                        setTimeout(() => setIsLoading(false), 400);
+                    } catch (error) {
+                        console.error(error);
+                        addLog('⚠ Ошибка инициализации: ' + error.message);
+                        setGeneratedText('Не удалось загрузить модель семантического поиска.');
+                        setIsError(true);
                     }
-                }
-
-                // 2) Лексика + морфология + typo correction
-                let bestLexicalFact = null;
-                let bestLexicalScore = -1;
-                let bestFactTopic = 'general';
-
-                for (const fact of factProfiles) {
-                    let score = computeLexicalScore(correctedInput, fact);
-                    const factTopic = fact.topic;
-
-                    if (topic !== 'general' && factTopic === topic) score += 0.10;
-                    if (inputTokens.length <= 2 && topic !== 'general') score += 0.05;
-
-                    if (score > bestLexicalScore) {
-                        bestLexicalScore = score;
-                        bestLexicalFact = fact;
-                        bestFactTopic = factTopic;
-                    }
-                }
-
-                const semanticReady = (
-                    modelUSE &&
-                    factVectorsRef.current &&
-                    factVectorsRef.current.length === factProfiles.length &&
-                    inputTokens.length >= 1 &&
-                    correctedInput.length >= 2
-                );
-
-                // Если семантика ещё не поднялась, всё равно даём нормальный fallback.
-                if (!semanticReady) {
-                    return {
-                        fact: bestLexicalFact,
-                        lexicalScore: bestLexicalScore,
-                        semanticScore: 0,
-                        combinedScore: bestLexicalScore,
-                        reason: `lexical_only topic=${bestFactTopic}`
-                    };
-                }
-
-                // 3) Семантика
-                const queryVectors = [];
-                for (const variant of queryVariants) {
-                    const qVec = await embedText(modelUSE, modelKind, variant, true);
-                    queryVectors.push(qVec);
-                }
-
-                let best = null;
-
-                for (let i = 0; i < factProfiles.length; i++) {
-                    const fact = factProfiles[i];
-                    const factVec = factVectorsRef.current[i];
-
-                    let semanticBest = -1;
-                    for (const qVec of queryVectors) {
-                        const sim = cosineSimilarity(qVec, factVec);
-                        if (sim > semanticBest) semanticBest = sim;
-                    }
-
-                    const lexicalScore = computeLexicalScore(correctedInput, fact);
-                    const factTopic = fact.topic;
-                    const topicBoost = topic !== 'general' && factTopic === topic ? 0.08 : 0;
-
-                    const combinedScore = (semanticBest * 0.58) + (lexicalScore * 0.34) + topicBoost;
-
-                    if (!best || combinedScore > best.combinedScore) {
-                        best = {
-                            fact,
-                            semanticScore: semanticBest,
-                            lexicalScore,
-                            combinedScore,
-                            reason: `semantic topic=${topic} factTopic=${factTopic}`
-                        };
-                    }
-                }
-
-                const threshold = calculateDynamicThreshold(inputText, best?.lexicalScore || 0);
-
-                if (!best) {
-                    return {
-                        fact: null,
-                        lexicalScore: 0,
-                        semanticScore: 0,
-                        combinedScore: 0,
-                        reason: 'no_best'
-                    };
-                }
-
-                const acceptable = (
-                    best.combinedScore >= threshold ||
-                    (best.lexicalScore >= 0.24 && best.semanticScore >= 0.24)
-                );
-
-                if (!acceptable) {
-                    return {
-                        fact: null,
-                        lexicalScore: best.lexicalScore,
-                        semanticScore: best.semanticScore,
-                        combinedScore: best.combinedScore,
-                        reason: `below_threshold topic=${topic}`
-                    };
-                }
-
-                return best;
-            };
+                })();
+            }, []);
 
             const generateText = async () => {
                 if (!startText.trim()) {
@@ -836,69 +794,85 @@
                     return;
                 }
 
+                if (!modelUSE) {
+                    addLog('⚠ Модель ещё не загружена');
+                    return;
+                }
+
                 setIsProcessing(true);
-                setGeneratedText('');
-                setIsError(false);
+
+                const normalizedInput = normalizeText(startText);
+                const inputTokens = tokenize(normalizedInput).filter(t => !STOPWORDS.has(t));
+                const expandedTokens = expandQuery(normalizedInput);
+
+                if (isProbablyGibberish(startText, inputTokens, expandedTokens)) {
+                    setGeneratedText('Запрос не распознан. Попробуйте задать нормальный вопрос о школе.');
+                    setIsError(true);
+                    addLog('⚠ Запрос похож на мусорный текст');
+                    setIsProcessing(false);
+                    return;
+                }
+
+                const queryForSemantic = `query: ${[normalizedInput, ...expandedTokens].join(' ')}`;
+                addLog('Семантический поиск по смыслу, синонимам и опечаткам...');
 
                 try {
-                    if (isGarbageQuery(startText)) {
-                        setGeneratedText('Запрос слишком короткий или шумный. Напиши нормальный вопрос, например: "кто директор школы?" или "пптание в школе?"');
-                        setIsError(true);
-                        addLog('⚠ Отброшен мусорный ввод');
-                        return;
+                    const queryVectorBatch = await embedTexts([queryForSemantic], modelUSE);
+                    const queryVector = queryVectorBatch[0] || queryVectorBatch;
+
+                    let best = {
+                        score: -Infinity,
+                        fact: null,
+                        index: -1,
+                        breakdown: null
+                    };
+
+                    for (let i = 0; i < SEARCH_INDEX.length; i++) {
+                        const semanticScore = cosineSimilarity(queryVector, factVectorsRef.current[i]);
+                        const lexical = measureLexicalMatch(inputTokens, expandedTokens, i);
+
+                        const totalScore = Math.min(
+                            1,
+                            semanticScore * 0.58 +
+                            lexical.lexical * 0.34 +
+                            lexical.weightedRecall * 0.04 +
+                            lexical.anchorCoverage * 0.02 +
+                            lexical.topicCoverage * 0.02
+                        );
+
+                        if (totalScore > best.score) {
+                            best = {
+                                score: totalScore,
+                                fact: SEARCH_INDEX[i].text,
+                                index: i,
+                                breakdown: { semanticScore, ...lexical }
+                            };
+                        }
                     }
 
-                    if (!modelUSE) {
-                        setGeneratedText('Модель ещё не загружена.');
-                        setIsError(true);
-                        addLog('⚠ Модель ещё не загружена');
-                        return;
-                    }
+                    const threshold = acceptanceThreshold(inputTokens.length);
+                    const semanticWeak = best.breakdown.semanticScore < 0.28;
+                    const lexicalWeak = best.breakdown.lexical < 0.16;
+                    const anchorWeak = best.breakdown.anchorCoverage < 0.10 && best.breakdown.topicCoverage < 0.10;
 
-                    const result = await rankFacts(startText);
-
-                    if (!result || !result.fact) {
-                        setGeneratedText('Факт не найден. Попробуйте спросить о директоре, учителях, местоположении, предметах, питании, поступлении или достижениях школы.');
+                    if (best.score < threshold || (semanticWeak && lexicalWeak) || (anchorWeak && best.breakdown.weightedRecall < 0.12)) {
+                        setGeneratedText('Факт не найден. Попробуйте переформулировать запрос.');
                         setIsError(true);
-                        addLog(`✗ ${result?.reason || 'no_result'} | lexical=${(result?.lexicalScore ?? 0).toFixed(3)} semantic=${(result?.semanticScore ?? 0).toFixed(3)} score=${(result?.combinedScore ?? 0).toFixed(3)}`);
+                        addLog(`✗ Нет уверенного совпадения: score=${best.score.toFixed(3)}, sem=${best.breakdown.semanticScore.toFixed(3)}, lex=${best.breakdown.lexical.toFixed(3)}, threshold=${threshold.toFixed(3)}`);
                     } else {
-                        setGeneratedText(result.fact.text);
+                        setGeneratedText(best.fact);
                         setIsError(false);
-                        addLog(`✓ ${result.reason} | lexical=${result.lexicalScore.toFixed(3)} semantic=${result.semanticScore.toFixed(3)} score=${result.combinedScore.toFixed(3)}`);
+                        addLog(`✓ Найден факт: score=${best.score.toFixed(3)}, sem=${best.breakdown.semanticScore.toFixed(3)}, lex=${best.breakdown.lexical.toFixed(3)}`);
                     }
                 } catch (error) {
-                    setGeneratedText('Произошла ошибка при поиске. Попробуйте переформулировать вопрос.');
+                    console.error(error);
+                    setGeneratedText('Ошибка при обработке запроса.');
                     setIsError(true);
-                    addLog('⚠ Ошибка: ' + (error?.message || error));
-                } finally {
-                    setIsProcessing(false);
+                    addLog('⚠ Ошибка семантического поиска: ' + error.message);
                 }
+
+                setIsProcessing(false);
             };
-
-            useEffect(() => {
-                (async () => {
-                    try {
-                        addLog('Загрузка Multilingual E5...');
-                        const loaded = await loadEmbeddingModel();
-
-                        setModelUSE(loaded.extractor);
-                        setModelKind(loaded.kind);
-                        setModelName(loaded.name);
-
-                        setLoadingProgress(60);
-                        addLog('Создание векторов фактов...');
-                        factVectorsRef.current = await prepareFactVectors(loaded.extractor, loaded.kind);
-
-                        setLoadingProgress(100);
-                        addLog('✓ Модель готова к работе');
-                        setTimeout(() => setIsLoading(false), 250);
-                    } catch (error) {
-                        setLoadingProgress(100);
-                        addLog('⚠ Семантическая модель недоступна: ' + (error?.message || error));
-                        setTimeout(() => setIsLoading(false), 250);
-                    }
-                })();
-            }, []);
 
             return (
                 <div className="min-h-screen bg-gray-50 p-6">
@@ -911,7 +885,7 @@
                         {isLoading && (
                             <div className="mb-6 bg-white rounded-lg p-6 border shadow-sm">
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-gray-700 font-medium">Загрузка semantic engine...</span>
+                                    <span className="text-gray-700 font-medium">Загрузка семантической модели...</span>
                                     <span className="text-blue-600 font-semibold">{loadingProgress}%</span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -920,9 +894,7 @@
                                         style={{ width: `${loadingProgress}%` }}
                                     />
                                 </div>
-                                <p className="text-sm text-gray-500 mt-2">
-                                    Пожалуйста, подождите. Идёт загрузка браузерной модели и векторизация фактов...
-                                </p>
+                                <p className="text-sm text-gray-500 mt-2">Сейчас загружается более сильная модель понимания текста.</p>
                             </div>
                         )}
 
@@ -955,7 +927,6 @@
                                         </>
                                     ) : 'Получить факт'}
                                 </button>
-
                                 {generatedText && (
                                     <div className={`border-l-4 ${isError ? 'border-red-600 bg-red-50' : 'border-blue-600 bg-blue-50'} p-4 rounded shadow`}>
                                         <h3 className={`font-semibold ${isError ? 'text-red-800' : 'text-blue-800'} mb-2`}>
@@ -977,17 +948,10 @@
                                 <div className="bg-white rounded-lg p-6 border shadow-sm">
                                     <h3 className="font-semibold mb-3">О AIzluchinsk</h3>
                                     <p className="text-gray-700 mb-2">
-                                        Это NLP-модель, которая анализирует запросы пользователей и находит наиболее релевантные факты об МБОУ «Излучинская ОСШУИОП №2». Поиск работает в несколько слоёв: точное совпадение, морфологическая нормализация, нечёткий поиск по опечаткам, а затем семантический поиск через браузерную multilingual embedding-модель.
+                                        Это NLP-модель, которая анализирует запросы пользователей и находит наиболее релевантные факты об МБОУ «Излучинская ОСШУИОП №2». Модель работает в три уровня: гибридный семантический поиск, расширение запроса синонимами и мягкая обработка опечаток.
                                     </p>
                                     <p className="text-gray-700 text-sm mt-3 pt-3 border-t">
                                         <strong>Авторы:</strong> Катренко Герман и Мокроусов Матвей
-                                    </p>
-                                </div>
-
-                                <div className="bg-white rounded-lg p-6 border shadow-sm">
-                                    <h3 className="font-semibold mb-3">Текущая модель</h3>
-                                    <p className="text-gray-700 text-sm">
-                                        {modelName || 'ещё не загружена'}
                                     </p>
                                 </div>
                             </div>
@@ -997,7 +961,13 @@
             );
         };
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<GenerativeTextAI />);
+        ReactDOM.render(<GenerativeTextAI />, document.getElementById('root'));
+
     </script>
+
+</head>
+<body>
+    <div id="root"></div>
+
 </body>
 </html>
